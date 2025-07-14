@@ -39,7 +39,7 @@ cmake --build build
 Enable tests (and fetch GoogleTest) in one go:
 
 ```bash
-cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DENABLE_TESTS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 cmake --build build
 sudo cmake --install build
 ```
@@ -47,7 +47,7 @@ sudo cmake --install build
 Build without tests for a lean installation:
 
 ```bash
-cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 cmake --build build
 sudo cmake --install build
 ```

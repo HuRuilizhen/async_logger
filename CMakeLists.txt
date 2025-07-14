@@ -22,7 +22,7 @@ else()
   FetchContent_Declare(
     ring_buffer
     GIT_REPOSITORY https://github.com/HuRuilizhen/ring_buffer.git
-    GIT_TAG master)
+    GIT_TAG v1.0.0)
   FetchContent_MakeAvailable(ring_buffer)
 endif()
 
@@ -30,7 +30,9 @@ add_library(async_logger STATIC src/async_logger.cc)
 target_include_directories(
   async_logger PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                       $<INSTALL_INTERFACE:include>)
-target_link_libraries(async_logger PUBLIC ring_buffer::ring_buffer)
+target_link_libraries(
+  async_logger PRIVATE $<$<BOOL:${ring_buffer_FOUND}>:ring_buffer::ring_buffer>
+                       $<$<NOT:$<BOOL:${ring_buffer_FOUND}>>:ring_buffer>)
 
 option(ENABLE_TESTS "Enable tests" ON)
 
@@ -86,8 +88,8 @@ export(
   FILE ${CMAKE_CURRENT_BINARY_DIR}/async_loggerTargets.cmake
   NAMESPACE async_logger::)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Uninstall.cmake.in
-               ${CMAKE_CURRENT_BINARY_DIR}/Uninstall.cmake @ONLY)
-
-add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P
-                                    ${CMAKE_CURRENT_BINARY_DIR}/Uninstall.cmake)
+include(InstallRequiredSystemLibraries)
+if(NOT TARGET uninstall)
+  add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P
+                                      ${CMAKE_BINARY_DIR}/Uninstall.cmake)
+endif()
