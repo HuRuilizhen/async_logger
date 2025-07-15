@@ -1,11 +1,13 @@
 #pragma once
 
+#include <ring_buffer/internal/semiatomic_slot.h>
+
 #include <atomic>
 #include <fstream>
 #include <string>
 #include <thread>
 
-#include "ring_buffer/spsc.h"
+#include "ring_buffer/mpsc.h"
 
 namespace AsyncLogger {
 
@@ -38,7 +40,7 @@ class Logger {
   static Logger& instance();
 
   // Ring buffer for storing log entries
-  RingBuffer::RingBufferAtomic<std::string> buffer_{1024};
+  RingBuffer::RingBufferSemiAtomicSlot<std::string> buffer_{1024};
   std::thread worker_;
   std::atomic<bool> running_{false};
   std::ofstream output_;

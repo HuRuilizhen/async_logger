@@ -3,6 +3,7 @@
 #include <chrono>
 #include <ctime>
 #include <sstream>
+#include <thread>
 
 namespace AsyncLogger {
 
@@ -16,6 +17,12 @@ void Logger::init(const std::string& filename, Level level) {
 
 void Logger::shutdown() {
   auto& lg = instance();
+  while (true) {
+    if (!lg.buffer_.isEmpty())
+      std::this_thread::yield();
+    else
+      break;
+  }
   lg.running_ = false;
   if (lg.worker_.joinable()) lg.worker_.join();
   if (lg.output_.is_open()) lg.output_.close();
@@ -76,7 +83,7 @@ void Logger::workerLoop() {
     if (buffer_.tryPop(entry)) {
       output_ << entry << std::endl;
     } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::yield();
     }
   }
 }
