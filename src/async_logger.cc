@@ -8,6 +8,11 @@
 
 namespace AsyncLogger {
 
+constexpr std::string_view filename_only(std::string_view path) {
+  auto pos = path.find_last_of("/\\");
+  return pos == std::string_view::npos ? path : path.substr(pos + 1);
+}
+
 void Logger::init(const Config& config) {
   auto& lg = instance();
   lg.level_ = config.level;
@@ -74,7 +79,7 @@ std::string Logger::format(Level lvl, const std::source_location& loc,
   std::ostringstream oss;
   oss << "[" << level_names[static_cast<int>(lvl)] << "] ";
   oss << "[" << time_buf << "] ";
-  oss << "[" << loc.file_name() << ":" << loc.line() << "] ";
+  oss << "[" << filename_only(loc.file_name()) << ":" << loc.line() << "] ";
   oss << msg;
   return oss.str();
 }
