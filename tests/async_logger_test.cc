@@ -6,7 +6,7 @@
 #include <string>
 
 namespace {
-static const std::string tmp_log = "test.log";
+static const std::string TMPLOG = "test.log";
 
 std::string readFile(const std::string& filename) {
   std::ifstream ifs(filename);
@@ -19,23 +19,23 @@ std::string readFile(const std::string& filename) {
 TEST(AsyncLogger, LevelFiltering) {
   // Init with level WARN, debug/info should be filtered out
 
-  AsyncLogger::Logger::init(tmp_log, AsyncLogger::Level::Warn);
+  AsyncLogger::Logger::init(TMPLOG, AsyncLogger::Level::Warn);
   AsyncLogger::Logger::debug("debug message");
   AsyncLogger::Logger::info("info message");
   AsyncLogger::Logger::warn("warn message");
   AsyncLogger::Logger::error("error message");
   AsyncLogger::Logger::shutdown();
 
-  std::string content = readFile(tmp_log);
+  std::string content = readFile(TMPLOG);
   EXPECT_EQ(content.find("debug message"), std::string::npos);
   EXPECT_EQ(content.find("info message"), std::string::npos);
   EXPECT_NE(content.find("warn message"), std::string::npos);
   EXPECT_NE(content.find("error message"), std::string::npos);
-  std::remove(tmp_log.c_str());
+  std::remove(TMPLOG.c_str());
 }
 
 TEST(AsyncLogger, ThreadSafety) {
-  AsyncLogger::Logger::init(tmp_log, AsyncLogger::Level::Info);
+  AsyncLogger::Logger::init(TMPLOG, AsyncLogger::Level::Info);
   // Launch multiple threads to log concurrently
   std::vector<std::thread> threads;
   for (int i = 0; i < 5; ++i) {
@@ -45,9 +45,9 @@ TEST(AsyncLogger, ThreadSafety) {
   for (auto& th : threads) th.join();
   AsyncLogger::Logger::shutdown();
 
-  std::string content = readFile(tmp_log);
+  std::string content = readFile(TMPLOG);
   for (int i = 0; i < 5; ++i) {
     EXPECT_NE(content.find("thread " + std::to_string(i)), std::string::npos);
   }
-  std::remove(tmp_log.c_str());
+  std::remove(TMPLOG.c_str());
 }

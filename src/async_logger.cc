@@ -3,6 +3,7 @@
 #include <chrono>
 #include <ctime>
 #include <sstream>
+#include <thread>
 
 namespace AsyncLogger {
 
@@ -76,8 +77,11 @@ void Logger::workerLoop() {
     if (buffer_.tryPop(entry)) {
       output_ << entry << std::endl;
     } else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      std::this_thread::yield();
     }
+  }
+  while (buffer_.tryPop(entry)) {
+    output_ << entry << std::endl;
   }
 }
 
