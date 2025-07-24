@@ -17,7 +17,7 @@ enum OutstreamFlag { stdout = 1, stderr = 1 << 1, file = 1 << 2 };
 
 struct Config {
   std::string filename{};
-  OutstreamFlag flag = OutstreamFlag::stdout;
+  int flag = OutstreamFlag::stdout;
   Level level = Level::Info;
 };
 
@@ -41,7 +41,7 @@ class Logger {
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;
 
-  OutstreamFlag flag_{};
+  int flag_{};
 
   void workerLoop();
   void enqueue(Level lvl, const std::string& msg);
