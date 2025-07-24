@@ -7,10 +7,12 @@
 
 namespace AsyncLogger {
 
-void Logger::init(const std::string& filename, Level level) {
+void Logger::init(const Config& config) {
   auto& lg = instance();
-  lg.level_ = level;
-  lg.output_.open(filename, std::ios::out | std::ios::app);
+  lg.level_ = config.level;
+  lg.flag_ = config.flag;
+  if (config.flag & OutstreamFlag::file)
+    lg.ofstream_.open(config.filename, std::ios::out | std::ios::app);
   lg.running_ = true;
   lg.worker_ = std::thread(&Logger::workerLoop, &lg);
 }
@@ -19,7 +21,7 @@ void Logger::shutdown() {
   auto& lg = instance();
   lg.running_ = false;
   if (lg.worker_.joinable()) lg.worker_.join();
-  if (lg.output_.is_open()) lg.output_.close();
+  if (lg.ofstream_.is_open()) lg.ofstream_.close();
 }
 
 void Logger::debug(const std::string& msg) {
@@ -67,22 +69,28 @@ std::string Logger::format(Level lvl, const std::string& msg) {
   static const char* level_names[] = {"DEBUG", "INFO", "WARN", "ERROR",
                                       "FATAL"};
   std::ostringstream oss;
-  oss << time_buf << " [" << level_names[static_cast<int>(lvl)] << "] " << msg;
+  oss << "[" << time_buf << "] ";
+  oss << "[" << level_names[static_cast<int>(lvl)] << "] ";
+  oss << msg;
   return oss.str();
+}
+
+void Logger::log(std::string entry) {
+  if (flag_ & OutstreamFlag::stdout) std::cout << entry << std::endl;
+  if (flag_ & OutstreamFlag::stderr) std::cerr << entry << std::endl;
+  if (flag_ & OutstreamFlag::file) ofstream_ << entry << std::endl;
 }
 
 void Logger::workerLoop() {
   std::string entry;
   while (running_) {
     if (buffer_.tryPop(entry)) {
-      output_ << entry << std::endl;
+      Logger::log(entry);
     } else {
       std::this_thread::yield();
     }
   }
-  while (buffer_.tryPop(entry)) {
-    output_ << entry << std::endl;
-  }
+  while (buffer_.tryPop(entry)) Logger::log(entry);
 }
 
 }  // namespace AsyncLogger
