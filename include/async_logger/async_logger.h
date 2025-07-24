@@ -1,13 +1,11 @@
 #pragma once
 
-#include <ring_buffer/internal/semiatomic_slot.h>
+#include <ring_buffer/mpsc.h>
 
 #include <atomic>
 #include <fstream>
 #include <string>
 #include <thread>
-
-#include "ring_buffer/mpsc.h"
 
 namespace AsyncLogger {
 
