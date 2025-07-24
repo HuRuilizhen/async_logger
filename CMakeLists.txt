@@ -57,6 +57,14 @@ if(ENABLE_TESTS)
   add_test(NAME async_logger_test COMMAND async_logger_test)
 endif(ENABLE_TESTS)
 
+option(ENABLE_EXAMPLE "Enable example" ON)
+
+if(ENABLE_EXAMPLE)
+  message(STATUS "Example enabled")
+  add_executable(async_logger_example examples/async_logger_example.cc)
+  target_link_libraries(async_logger_example PRIVATE async_logger)
+endif(ENABLE_EXAMPLE)
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
