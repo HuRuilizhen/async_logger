@@ -19,7 +19,12 @@ std::string readFile(const std::string& filename) {
 TEST(AsyncLogger, LevelFiltering) {
   // Init with level WARN, debug/info should be filtered out
 
-  AsyncLogger::Logger::init(TMPLOG, AsyncLogger::Level::Warn);
+  AsyncLogger::Config config;
+  config.level = AsyncLogger::Level::Warn;
+  config.flag = AsyncLogger::OutstreamFlag::file;
+  config.filename = TMPLOG;
+
+  AsyncLogger::Logger::init(config);
   AsyncLogger::Logger::debug("debug message");
   AsyncLogger::Logger::info("info message");
   AsyncLogger::Logger::warn("warn message");
@@ -35,7 +40,13 @@ TEST(AsyncLogger, LevelFiltering) {
 }
 
 TEST(AsyncLogger, ThreadSafety) {
-  AsyncLogger::Logger::init(TMPLOG, AsyncLogger::Level::Info);
+  AsyncLogger::Config config;
+  config.level = AsyncLogger::Level::Info;
+  config.flag = AsyncLogger::OutstreamFlag::file;
+  config.filename = TMPLOG;
+
+  AsyncLogger::Logger::init(config);
+
   // Launch multiple threads to log concurrently
   std::vector<std::thread> threads;
   for (int i = 0; i < 5; ++i) {

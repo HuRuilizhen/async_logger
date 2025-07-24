@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <fstream>
+#include <ostream>
 #include <string>
 #include <thread>
 
@@ -12,10 +13,18 @@ namespace AsyncLogger {
 // Supported log levels
 enum class Level { Debug, Info, Warn, Error, Fatal };
 
+enum OutstreamFlag { stdout = 1, stderr = 1 << 1, file = 1 << 2 };
+
+struct Config {
+  std::string filename{};
+  OutstreamFlag flag = OutstreamFlag::stdout;
+  Level level = Level::Info;
+};
+
 class Logger {
  public:
   // Initialize logger: opens file and starts worker thread
-  static void init(const std::string& filename, Level level = Level::Info);
+  static void init(const Config& config);
   // Shutdown logger: stops worker and flushes remaining logs
   static void shutdown();
 
@@ -32,8 +41,11 @@ class Logger {
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;
 
+  OutstreamFlag flag_{};
+
   void workerLoop();
   void enqueue(Level lvl, const std::string& msg);
+  void log(std::string entry);
   std::string format(Level lvl, const std::string& msg);
   static Logger& instance();
 
@@ -41,7 +53,7 @@ class Logger {
   RingBuffer::RingBufferSemiAtomicSlot<std::string> buffer_{1024};
   std::thread worker_;
   std::atomic<bool> running_{false};
-  std::ofstream output_;
+  std::ofstream ofstream_;
   Level level_{Level::Info};
 };
 
