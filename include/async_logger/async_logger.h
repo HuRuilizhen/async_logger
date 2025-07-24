@@ -4,7 +4,7 @@
 
 #include <atomic>
 #include <fstream>
-#include <ostream>
+#include <source_location>
 #include <string>
 #include <thread>
 
@@ -29,11 +29,19 @@ class Logger {
   static void shutdown();
 
   // Logging API
-  static void debug(const std::string& msg);
-  static void info(const std::string& msg);
-  static void warn(const std::string& msg);
-  static void error(const std::string& msg);
-  static void fatal(const std::string& msg);
+  static void debug(
+      const std::string& msg,
+      const std::source_location& loc = std::source_location::current());
+  static void info(const std::string& msg, const std::source_location& loc =
+                                               std::source_location::current());
+  static void warn(const std::string& msg, const std::source_location& loc =
+                                               std::source_location::current());
+  static void error(
+      const std::string& msg,
+      const std::source_location& loc = std::source_location::current());
+  static void fatal(
+      const std::string& msg,
+      const std::source_location& loc = std::source_location::current());
 
  private:
   Logger() = default;
@@ -44,9 +52,11 @@ class Logger {
   int flag_{};
 
   void workerLoop();
-  void enqueue(Level lvl, const std::string& msg);
+  void enqueue(Level lvl, const std::source_location& loc,
+               const std::string& msg);
   void log(std::string entry);
-  std::string format(Level lvl, const std::string& msg);
+  std::string format(Level lvl, const std::source_location& loc,
+                     const std::string& msg);
   static Logger& instance();
 
   // Ring buffer for storing log entries

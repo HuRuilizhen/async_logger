@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <source_location>
 #include <sstream>
 #include <thread>
 
@@ -24,20 +25,20 @@ void Logger::shutdown() {
   if (lg.ofstream_.is_open()) lg.ofstream_.close();
 }
 
-void Logger::debug(const std::string& msg) {
-  instance().enqueue(Level::Debug, msg);
+void Logger::debug(const std::string& msg, const std::source_location& loc) {
+  instance().enqueue(Level::Debug, loc, msg);
 }
-void Logger::info(const std::string& msg) {
-  instance().enqueue(Level::Info, msg);
+void Logger::info(const std::string& msg, const std::source_location& loc) {
+  instance().enqueue(Level::Info, loc, msg);
 }
-void Logger::warn(const std::string& msg) {
-  instance().enqueue(Level::Warn, msg);
+void Logger::warn(const std::string& msg, const std::source_location& loc) {
+  instance().enqueue(Level::Warn, loc, msg);
 }
-void Logger::error(const std::string& msg) {
-  instance().enqueue(Level::Error, msg);
+void Logger::error(const std::string& msg, const std::source_location& loc) {
+  instance().enqueue(Level::Error, loc, msg);
 }
-void Logger::fatal(const std::string& msg) {
-  instance().enqueue(Level::Fatal, msg);
+void Logger::fatal(const std::string& msg, const std::source_location& loc) {
+  instance().enqueue(Level::Fatal, loc, msg);
 }
 
 Logger& Logger::instance() {
@@ -49,12 +50,14 @@ Logger::~Logger() {
   if (running_) shutdown();
 }
 
-void Logger::enqueue(Level lvl, const std::string& msg) {
+void Logger::enqueue(Level lvl, const std::source_location& loc,
+                     const std::string& msg) {
   if (lvl < level_) return;
-  buffer_.tryPush(format(lvl, msg));
+  buffer_.tryPush(format(lvl, loc, msg));
 }
 
-std::string Logger::format(Level lvl, const std::string& msg) {
+std::string Logger::format(Level lvl, const std::source_location& loc,
+                           const std::string& msg) {
   auto now = std::chrono::system_clock::now();
   auto tt = std::chrono::system_clock::to_time_t(now);
   std::tm tm{};
@@ -69,8 +72,9 @@ std::string Logger::format(Level lvl, const std::string& msg) {
   static const char* level_names[] = {"DEBUG", "INFO", "WARN", "ERROR",
                                       "FATAL"};
   std::ostringstream oss;
-  oss << "[" << time_buf << "] ";
   oss << "[" << level_names[static_cast<int>(lvl)] << "] ";
+  oss << "[" << time_buf << "] ";
+  oss << "[" << loc.file_name() << ":" << loc.line() << "] ";
   oss << msg;
   return oss.str();
 }
