@@ -6,7 +6,53 @@
 #include <sstream>
 #include <thread>
 
+namespace AsyncLogger::AnsiColor {
+inline constexpr std::string_view RESET = "\033[0m";
+inline constexpr std::string_view RED = "\033[31m";
+inline constexpr std::string_view GREEN = "\033[32m";
+inline constexpr std::string_view YELLOW = "\033[33m";
+inline constexpr std::string_view BLUE = "\033[34m";
+inline constexpr std::string_view MAGENTA = "\033[35m";
+inline constexpr std::string_view CYAN = "\033[36m";
+inline constexpr std::string_view GRAY = "\033[90m";
+inline constexpr std::string_view BG_RED = "\033[41m";
+}  // namespace AsyncLogger::AnsiColor
+
 namespace AsyncLogger {
+
+inline std::string_view getLevelString(Level lvl) {
+  switch (lvl) {
+    case Level::Debug:
+      return "DEBUG";
+    case Level::Info:
+      return "INFO";
+    case Level::Warn:
+      return "WARN";
+    case Level::Error:
+      return "ERROR";
+    case Level::Fatal:
+      return "FATAL";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+inline std::string_view getLevelColor(Level lvl) {
+  switch (lvl) {
+    case Level::Debug:
+      return AnsiColor::CYAN;
+    case Level::Info:
+      return AnsiColor::GREEN;
+    case Level::Warn:
+      return AnsiColor::YELLOW;
+    case Level::Error:
+      return AnsiColor::RED;
+    case Level::Fatal:
+      return AnsiColor::BG_RED;
+    default:
+      return AnsiColor::RESET;
+  }
+}
 
 constexpr std::string_view filename_only(std::string_view path) {
   auto pos = path.find_last_of("/\\");
@@ -58,11 +104,10 @@ Logger::~Logger() {
 void Logger::enqueue(Level lvl, const std::source_location& loc,
                      const std::string& msg) {
   if (lvl < level_) return;
-  buffer_.tryPush(format(lvl, loc, msg));
+  buffer_.tryPush({lvl, loc, msg});
 }
 
-std::string Logger::format(Level lvl, const std::source_location& loc,
-                           const std::string& msg) {
+std::string Logger::format(const Entry& entry, bool colored) {
   auto now = std::chrono::system_clock::now();
   auto tt = std::chrono::system_clock::to_time_t(now);
   std::tm tm{};
@@ -74,24 +119,27 @@ std::string Logger::format(Level lvl, const std::source_location& loc,
   char time_buf[20];
   std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &tm);
 
-  static const char* level_names[] = {"DEBUG", "INFO", "WARN", "ERROR",
-                                      "FATAL"};
   std::ostringstream oss;
-  oss << "[" << level_names[static_cast<int>(lvl)] << "] ";
-  oss << "[" << time_buf << "] ";
-  oss << "[" << filename_only(loc.file_name()) << ":" << loc.line() << "] ";
-  oss << msg;
+  if (flag_ & colored) oss << getLevelColor(entry.lvl);
+  oss << "[" << getLevelString(entry.lvl) << "]";
+  if (flag_ & colored) oss << AnsiColor::RESET;
+  oss << " [" << time_buf << "] ";
+  oss << "[" << filename_only(entry.loc.file_name()) << ":" << entry.loc.line()
+      << "] ";
+  oss << entry.msg;
   return oss.str();
 }
 
-void Logger::log(std::string entry) {
-  if (flag_ & OutstreamFlag::out_stdout) std::cout << entry << std::endl;
-  if (flag_ & OutstreamFlag::out_stderr) std::cerr << entry << std::endl;
-  if (flag_ & OutstreamFlag::out_file) ofstream_ << entry << std::endl;
+void Logger::log(const Entry& entry) {
+  if (flag_ & OutstreamFlag::out_stdout)
+    std::cout << format(entry, flag_ & out_color) << std::endl;
+  if (flag_ & OutstreamFlag::out_stderr)
+    std::cerr << format(entry, flag_ & out_color) << std::endl;
+  if (flag_ & OutstreamFlag::out_file) ofstream_ << format(entry) << std::endl;
 }
 
 void Logger::workerLoop() {
-  std::string entry;
+  Entry entry;
   while (running_) {
     if (buffer_.tryPop(entry)) {
       Logger::log(entry);
