@@ -6,6 +6,7 @@
 #include <fstream>
 #include <source_location>
 #include <string>
+#include <string_view>
 #include <thread>
 
 namespace AsyncLogger {
@@ -13,12 +14,24 @@ namespace AsyncLogger {
 // Supported log levels
 enum class Level { Debug, Info, Warn, Error, Fatal };
 
-enum OutstreamFlag { out_stdout = 1, out_stderr = 1 << 1, out_file = 1 << 2 };
+// Supported ostream control flag
+enum OutstreamFlag {
+  out_stdout = 1,       // log to std out
+  out_stderr = 1 << 1,  // log to std error
+  out_file = 1 << 2,    // log to given file
+  out_color = 1 << 3    // enabel colored level, only work on std out
+};
 
 struct Config {
   std::string filename{};
   int flag = OutstreamFlag::out_stdout;
   Level level = Level::Info;
+};
+
+struct Entry {
+  Level lvl = Level::Info;
+  std::source_location loc;
+  std::string msg;
 };
 
 class Logger {
@@ -54,13 +67,13 @@ class Logger {
   void workerLoop();
   void enqueue(Level lvl, const std::source_location& loc,
                const std::string& msg);
-  void log(std::string entry);
-  std::string format(Level lvl, const std::source_location& loc,
-                     const std::string& msg);
+  void log(const Entry& entry);
+  std::string format(const Entry& entry, bool colored = false);
   static Logger& instance();
 
   // Ring buffer for storing log entries
-  RingBuffer::RingBufferSemiAtomicSlot<std::string> buffer_{1024};
+  RingBuffer::RingBufferSemiAtomicSlot<Entry> buffer_{1024};
+
   std::thread worker_;
   std::atomic<bool> running_{false};
   std::ofstream ofstream_;
