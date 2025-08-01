@@ -121,9 +121,9 @@ std::string Logger::format(const Entry& entry, bool colored) {
 
   std::ostringstream oss;
   if (flag_ & colored) oss << getLevelColor(entry.lvl);
-  oss << "[" << getLevelString(entry.lvl) << "] ";
+  oss << "[" << getLevelString(entry.lvl) << "]";
   if (flag_ & colored) oss << AnsiColor::RESET;
-  oss << "[" << time_buf << "] ";
+  oss << " [" << time_buf << "] ";
   oss << "[" << filename_only(entry.loc.file_name()) << ":" << entry.loc.line()
       << "] ";
   oss << entry.msg;
