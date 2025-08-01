@@ -21,7 +21,7 @@ TEST(AsyncLogger, LevelFiltering) {
 
   AsyncLogger::Config config;
   config.level = AsyncLogger::Level::Warn;
-  config.flag = AsyncLogger::OutstreamFlag::file;
+  config.flag = AsyncLogger::OutstreamFlag::out_file;
   config.filename = TMPLOG;
 
   AsyncLogger::Logger::init(config);
@@ -42,7 +42,7 @@ TEST(AsyncLogger, LevelFiltering) {
 TEST(AsyncLogger, ThreadSafety) {
   AsyncLogger::Config config;
   config.level = AsyncLogger::Level::Info;
-  config.flag = AsyncLogger::OutstreamFlag::file;
+  config.flag = AsyncLogger::OutstreamFlag::out_file;
   config.filename = TMPLOG;
 
   AsyncLogger::Logger::init(config);

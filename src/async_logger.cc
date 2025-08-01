@@ -17,7 +17,7 @@ void Logger::init(const Config& config) {
   auto& lg = instance();
   lg.level_ = config.level;
   lg.flag_ = config.flag;
-  if (config.flag & OutstreamFlag::file)
+  if (config.flag & OutstreamFlag::out_file)
     lg.ofstream_.open(config.filename, std::ios::out | std::ios::app);
   lg.running_ = true;
   lg.worker_ = std::thread(&Logger::workerLoop, &lg);
@@ -85,9 +85,9 @@ std::string Logger::format(Level lvl, const std::source_location& loc,
 }
 
 void Logger::log(std::string entry) {
-  if (flag_ & OutstreamFlag::stdout) std::cout << entry << std::endl;
-  if (flag_ & OutstreamFlag::stderr) std::cerr << entry << std::endl;
-  if (flag_ & OutstreamFlag::file) ofstream_ << entry << std::endl;
+  if (flag_ & OutstreamFlag::out_stdout) std::cout << entry << std::endl;
+  if (flag_ & OutstreamFlag::out_stderr) std::cerr << entry << std::endl;
+  if (flag_ & OutstreamFlag::out_file) ofstream_ << entry << std::endl;
 }
 
 void Logger::workerLoop() {

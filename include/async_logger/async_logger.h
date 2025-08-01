@@ -13,11 +13,11 @@ namespace AsyncLogger {
 // Supported log levels
 enum class Level { Debug, Info, Warn, Error, Fatal };
 
-enum OutstreamFlag { stdout = 1, stderr = 1 << 1, file = 1 << 2 };
+enum OutstreamFlag { out_stdout = 1, out_stderr = 1 << 1, out_file = 1 << 2 };
 
 struct Config {
   std::string filename{};
-  int flag = OutstreamFlag::stdout;
+  int flag = OutstreamFlag::out_stdout;
   Level level = Level::Info;
 };
 
