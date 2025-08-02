@@ -23,7 +23,7 @@ enum OutstreamFlag {
 
 struct Config {
   std::string filename{};
-  int flag = OutstreamFlag::out_stdout;
+  int flag = OutstreamFlag::out_stdout | OutstreamFlag::out_color;
   Level level = Level::Info;
 };
 
