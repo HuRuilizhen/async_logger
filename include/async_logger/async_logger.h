@@ -18,7 +18,8 @@ enum OutstreamFlag {
   out_stdout = 1,       // log to std out
   out_stderr = 1 << 1,  // log to std error
   out_file = 1 << 2,    // log to given file
-  out_color = 1 << 3    // enabel colored level, only work on std out
+  out_color = 1 << 3,   // enabel colored level, only work on std out
+  mode_append = 1 << 4  // open file in append mode
 };
 
 struct Config {

@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <ostream>
 #include <source_location>
 #include <sstream>
 #include <thread>
@@ -63,8 +64,20 @@ void Logger::init(const Config& config) {
   auto& lg = instance();
   lg.level_ = config.level;
   lg.flag_ = config.flag;
-  if (config.flag & OutstreamFlag::out_file)
-    lg.ofstream_.open(config.filename, std::ios::out | std::ios::app);
+
+  if (config.flag & OutstreamFlag::out_file) {
+    int open_mode = std::ios::out;
+    if (config.flag & OutstreamFlag::mode_append)
+      open_mode |= std::ios::app;
+    else
+      open_mode |= std::ios::trunc;
+    lg.ofstream_.open(config.filename, open_mode);
+    if (!lg.ofstream_.is_open()) {
+      std::cerr << "Failed to open file: " << config.filename << std::endl;
+      exit(1);
+    }
+  }
+
   lg.running_ = true;
   lg.worker_ = std::thread(&Logger::workerLoop, &lg);
 }
