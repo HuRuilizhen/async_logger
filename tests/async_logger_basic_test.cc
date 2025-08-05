@@ -1,9 +1,9 @@
-#include "async_logger/async_logger.h"
-
 #include <gtest/gtest.h>
 
 #include <cstdio>
 #include <string>
+
+#include "async_logger/async_logger.h"
 
 namespace {
 static const std::string TMPLOG = "test.log";
