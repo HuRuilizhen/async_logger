@@ -18,7 +18,6 @@ std::string readFile(const std::string& filename) {
 
 TEST(AsyncLogger, LevelFiltering) {
   // Init with level WARN, debug/info should be filtered out
-
   AsyncLogger::Config config;
   config.level = AsyncLogger::Level::Warn;
   config.flag = AsyncLogger::OutstreamFlag::out_file;
