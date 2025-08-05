@@ -66,7 +66,12 @@ void Logger::init(const Config& config) {
   lg.flag_ = config.flag;
 
   if (config.flag & OutstreamFlag::out_file) {
-    lg.ofstream_.open(config.filename, std::ios::out | std::ios::app);
+    int open_mode = std::ios::out;
+    if (config.flag & OutstreamFlag::mode_append)
+      open_mode |= std::ios::app;
+    else
+      open_mode |= std::ios::trunc;
+    lg.ofstream_.open(config.filename, open_mode);
     if (!lg.ofstream_.is_open()) {
       std::cerr << "Failed to open file: " << config.filename << std::endl;
       exit(1);
