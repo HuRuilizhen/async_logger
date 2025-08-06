@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <ctime>
 #include <string>
 
 #include "async_logger/async_logger.h"
@@ -16,14 +18,29 @@ std::string readFile(const std::string& filename) {
 }  // namespace
 
 TEST(AsyncLogger, EmptyFileName) {
-  // Init without given filename
-  AsyncLogger::Config config;
-  config.level = AsyncLogger::Level::Warn;
-  config.flag = AsyncLogger::OutstreamFlag::out_file;
+  // Init with defaut config value
+  AsyncLogger::Logger::init(AsyncLogger::Config());
+  AsyncLogger::Logger::info("test");
+  AsyncLogger::Logger::shutdown();
 
-  // Should exit with error
-  EXPECT_EXIT(AsyncLogger::Logger::init(config);
-              , ::testing::ExitedWithCode(1), "Failed to open file");
+  std::stringstream filename;
+  static const std::string ext = ".log";
+  auto now = std::chrono::system_clock::now();
+  auto tt = std::chrono::system_clock::to_time_t(now);
+  std::tm tm{};
+#ifdef _WIN32
+  localtime_s(&tm, &tt);
+#else
+  localtime_r(&tt, &tm);
+#endif
+  char time_buf[20];
+  std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d", &tm);
+  filename << static_cast<std::string>(time_buf) << ext;
+
+  std::string content = readFile(filename.str());
+  EXPECT_NE(content.find("test"), std::string::npos);
+
+  std::remove(filename.str().c_str());
 }
 
 TEST(AsyncLogger, AppendFileMode) {

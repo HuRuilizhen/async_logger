@@ -5,6 +5,7 @@
 #include <ostream>
 #include <source_location>
 #include <sstream>
+#include <string>
 #include <thread>
 
 namespace AsyncLogger::AnsiColor {
@@ -71,7 +72,26 @@ void Logger::init(const Config& config) {
       open_mode |= std::ios::app;
     else
       open_mode |= std::ios::trunc;
-    lg.ofstream_.open(config.filename, open_mode);
+
+    std::stringstream filename;
+    if (config.filename.empty()) {
+      static const std::string ext = ".log";
+      auto now = std::chrono::system_clock::now();
+      auto tt = std::chrono::system_clock::to_time_t(now);
+      std::tm tm{};
+#ifdef _WIN32
+      localtime_s(&tm, &tt);
+#else
+      localtime_r(&tt, &tm);
+#endif
+      char time_buf[20];
+      std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d", &tm);
+      filename << static_cast<std::string>(time_buf) << ext;
+    } else {
+      filename << config.filename;
+    }
+
+    lg.ofstream_.open(filename.str(), open_mode);
     if (!lg.ofstream_.is_open()) {
       std::cerr << "Failed to open file: " << config.filename << std::endl;
       exit(1);
