@@ -22,7 +22,7 @@ inline constexpr std::string_view BG_RED = "\033[41m";
 
 namespace AsyncLogger {
 
-inline std::string_view getLevelString(Level lvl) {
+inline const std::string_view getLevelString(Level lvl) {
   switch (lvl) {
     case Level::Debug:
       return "DEBUG";
@@ -39,7 +39,7 @@ inline std::string_view getLevelString(Level lvl) {
   }
 }
 
-inline std::string_view getLevelColor(Level lvl) {
+inline const std::string_view getLevelColor(Level lvl) {
   switch (lvl) {
     case Level::Debug:
       return AnsiColor::CYAN;
@@ -54,6 +54,18 @@ inline std::string_view getLevelColor(Level lvl) {
     default:
       return AnsiColor::RESET;
   }
+}
+
+inline const std::tm getCurrentTime() {
+  auto now = std::chrono::system_clock::now();
+  auto tt = std::chrono::system_clock::to_time_t(now);
+  std::tm tm{};
+#ifdef _WIN32
+  localtime_s(&tm, &tt);
+#else
+  localtime_r(&tt, &tm);
+#endif
+  return tm;
 }
 
 constexpr std::string_view filename_only(std::string_view path) {
@@ -76,14 +88,7 @@ void Logger::init(const Config& config) {
     std::stringstream filename;
     if (config.filename.empty()) {
       static const std::string ext = ".log";
-      auto now = std::chrono::system_clock::now();
-      auto tt = std::chrono::system_clock::to_time_t(now);
-      std::tm tm{};
-#ifdef _WIN32
-      localtime_s(&tm, &tt);
-#else
-      localtime_r(&tt, &tm);
-#endif
+      std::tm tm = getCurrentTime();
       char time_buf[20];
       std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d", &tm);
       filename << static_cast<std::string>(time_buf) << ext;
@@ -141,14 +146,7 @@ void Logger::enqueue(Level lvl, const std::source_location& loc,
 }
 
 std::string Logger::format(const Entry& entry, bool colored) {
-  auto now = std::chrono::system_clock::now();
-  auto tt = std::chrono::system_clock::to_time_t(now);
-  std::tm tm{};
-#ifdef _WIN32
-  localtime_s(&tm, &tt);
-#else
-  localtime_r(&tt, &tm);
-#endif
+  std::tm tm = getCurrentTime();
   char time_buf[20];
   std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &tm);
 
