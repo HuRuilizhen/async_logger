@@ -6,7 +6,6 @@
 #include <fstream>
 #include <source_location>
 #include <string>
-#include <string_view>
 #include <thread>
 
 namespace AsyncLogger {
@@ -64,8 +63,6 @@ class Logger {
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;
 
-  int flag_{};
-
   void workerLoop();
   void enqueue(Level lvl, const std::source_location& loc,
                const std::string& msg);
@@ -73,13 +70,19 @@ class Logger {
   std::string format(const Entry& entry, bool colored = false);
   static Logger& instance();
 
+  // Config variables
+  Level level_{Level::Info};
+  int flag_{};
+  int file_mode_{};
+  std::tm time_stamp_{};
+  std::ofstream ofstream_;
+
   // Ring buffer for storing log entries
   RingBuffer::RingBufferSemiAtomicSlot<Entry> buffer_{1024};
 
+  // Thread and state related
   std::thread worker_;
   std::atomic<bool> running_{false};
-  std::ofstream ofstream_;
-  Level level_{Level::Info};
 };
 
 }  // namespace AsyncLogger

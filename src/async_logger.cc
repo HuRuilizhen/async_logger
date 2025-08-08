@@ -85,7 +85,7 @@ void Logger::init(const Config& config) {
     else
       open_mode |= std::ios::trunc;
 
-    std::stringstream filename;
+    std::ostringstream filename;
     if (config.filename.empty()) {
       static const std::string ext = ".log";
       std::tm tm = getCurrentTime();
