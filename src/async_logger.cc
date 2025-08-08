@@ -79,7 +79,7 @@ void Logger::init(const Config& config) {
   lg.flag_ = config.flag;
 
   if (config.flag & OutstreamFlag::out_file) {
-    int open_mode = std::ios::out;
+    std::ios::openmode open_mode = std::ios::out;
     if (config.flag & OutstreamFlag::mode_append)
       open_mode |= std::ios::app;
     else
