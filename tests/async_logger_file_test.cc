@@ -25,14 +25,7 @@ TEST(AsyncLogger, EmptyFileName) {
 
   std::stringstream filename;
   static const std::string ext = ".log";
-  auto now = std::chrono::system_clock::now();
-  auto tt = std::chrono::system_clock::to_time_t(now);
-  std::tm tm{};
-#ifdef _WIN32
-  localtime_s(&tm, &tt);
-#else
-  localtime_r(&tt, &tm);
-#endif
+  std::tm tm = AsyncLogger::LoggerUtils::getCurrentTime();
   char time_buf[20];
   std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d", &tm);
   filename << static_cast<std::string>(time_buf) << ext;

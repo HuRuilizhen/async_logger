@@ -92,13 +92,13 @@ class Logger {
 
 class LoggerUtils {
  public:
-  static inline const std::string_view getLevelString(Level lvl);
-  static inline const std::string_view getLevelColor(Level lvl);
-  static inline const std::tm getCurrentTime();
-  static inline std::tm getRoundedTime(std::tm time);
-  static inline const bool tryUpdateTimestamp(Logger& lg);
-  static inline const std::ostringstream getDefaultFilename();
-  static inline const bool tryUpdateFileStream(Logger& lg);
+  static const std::string_view getLevelString(Level lvl);
+  static const std::string_view getLevelColor(Level lvl);
+  static const std::tm getCurrentTime();
+  static const std::tm getRoundedTime(std::tm time);
+  static const bool tryUpdateTimestamp(Logger& lg);
+  static const std::ostringstream getDefaultFilename();
+  static const bool tryUpdateFileStream(Logger& lg);
   static constexpr std::string_view getFilenameInPath(std::string_view path);
 };
 

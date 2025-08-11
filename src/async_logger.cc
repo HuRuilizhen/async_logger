@@ -24,7 +24,7 @@ inline constexpr std::string_view BG_RED = "\033[41m";
 
 namespace AsyncLogger {
 
-inline const std::string_view LoggerUtils::getLevelString(Level lvl) {
+const std::string_view LoggerUtils::getLevelString(Level lvl) {
   switch (lvl) {
     case Level::Debug:
       return "DEBUG";
@@ -41,7 +41,7 @@ inline const std::string_view LoggerUtils::getLevelString(Level lvl) {
   }
 }
 
-inline const std::string_view LoggerUtils::getLevelColor(Level lvl) {
+const std::string_view LoggerUtils::getLevelColor(Level lvl) {
   switch (lvl) {
     case Level::Debug:
       return AnsiColor::CYAN;
@@ -58,7 +58,7 @@ inline const std::string_view LoggerUtils::getLevelColor(Level lvl) {
   }
 }
 
-inline const std::tm LoggerUtils::getCurrentTime() {
+const std::tm LoggerUtils::getCurrentTime() {
   auto now = std::chrono::system_clock::now();
   auto tt = std::chrono::system_clock::to_time_t(now);
   std::tm tm{};
@@ -70,7 +70,7 @@ inline const std::tm LoggerUtils::getCurrentTime() {
   return tm;
 }
 
-inline std::tm LoggerUtils::getRoundedTime(std::tm time) {
+const std::tm LoggerUtils::getRoundedTime(std::tm time) {
   std::tm rounded_time = time;
   rounded_time.tm_hour = 0;
   rounded_time.tm_min = 0;
@@ -78,7 +78,7 @@ inline std::tm LoggerUtils::getRoundedTime(std::tm time) {
   return rounded_time;
 }
 
-inline const bool LoggerUtils::tryUpdateTimestamp(Logger& lg) {
+const bool LoggerUtils::tryUpdateTimestamp(Logger& lg) {
   std::tm cur_time = getCurrentTime();
   if (cur_time.tm_year == lg.time_stamp_.tm_year &&
       cur_time.tm_mon == lg.time_stamp_.tm_mon &&
@@ -88,7 +88,7 @@ inline const bool LoggerUtils::tryUpdateTimestamp(Logger& lg) {
   return true;
 }
 
-inline const std::ostringstream LoggerUtils::getDefaultFilename() {
+const std::ostringstream LoggerUtils::getDefaultFilename() {
   std::tm time = getCurrentTime();
   std::ostringstream filename;
   static const std::string ext = ".log";
@@ -98,7 +98,7 @@ inline const std::ostringstream LoggerUtils::getDefaultFilename() {
   return filename;
 }
 
-inline const bool LoggerUtils::tryUpdateFileStream(Logger& lg) {
+const bool LoggerUtils::tryUpdateFileStream(Logger& lg) {
   if (tryUpdateTimestamp(lg)) {
     lg.ofstream_.close();
     lg.ofstream_.open(getDefaultFilename().str(), lg.file_mode_);
