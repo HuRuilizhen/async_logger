@@ -68,6 +68,8 @@ if(ENABLE_EXAMPLE)
   add_executable(async_logger_example examples/async_logger_example.cc)
   add_executable(async_logger_macro_example
                  examples/async_logger_macro_example.cc)
+  add_compile_options(async_logger_example PRIVATE -g)
+  add_compile_options(async_logger_macro_example PRIVATE -g)
   target_link_libraries(async_logger_example PRIVATE async_logger)
   target_link_libraries(async_logger_macro_example PRIVATE async_logger)
 endif(ENABLE_EXAMPLE)
