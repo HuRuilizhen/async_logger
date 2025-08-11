@@ -5,6 +5,7 @@
 #include <atomic>
 #include <fstream>
 #include <source_location>
+#include <sstream>
 #include <string>
 #include <thread>
 
@@ -25,7 +26,7 @@ enum OutstreamFlag {
 struct Config {
   std::string filename{};
   int flag = OutstreamFlag::out_stdout | OutstreamFlag::out_file |
-             OutstreamFlag::out_color;
+             OutstreamFlag::out_color | OutstreamFlag::mode_append;
   Level level = Level::Info;
 };
 
@@ -74,6 +75,7 @@ class Logger {
   Level level_{Level::Info};
   int flag_{};
   int file_mode_{};
+  bool need_rotation_{};
   std::tm time_stamp_{};
   std::ofstream ofstream_;
 
@@ -83,6 +85,21 @@ class Logger {
   // Thread and state related
   std::thread worker_;
   std::atomic<bool> running_{false};
+
+  // Friend utils class
+  friend class LoggerUtils;
+};
+
+class LoggerUtils {
+ public:
+  static inline const std::string_view getLevelString(Level lvl);
+  static inline const std::string_view getLevelColor(Level lvl);
+  static inline const std::tm getCurrentTime();
+  static inline std::tm getRoundedTime(std::tm time);
+  static inline const bool tryUpdateTimestamp(Logger& lg);
+  static inline const std::ostringstream getDefaultFilename();
+  static inline const bool tryUpdateFileStream(Logger& lg);
+  static constexpr std::string_view getFilenameInPath(std::string_view path);
 };
 
 }  // namespace AsyncLogger
