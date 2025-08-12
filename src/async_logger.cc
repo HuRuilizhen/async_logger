@@ -136,7 +136,7 @@ void Logger::init(const Config& config) {
       filename = config.filename;
     }
 
-    lg.ofstream_.open(filename, lg.file_mode_);
+    lg.ofstream_.open(filename.c_str(), lg.file_mode_);
     if (!lg.ofstream_.is_open()) {
       std::cerr << "Failed to open file: " << filename << std::endl;
       exit(1);

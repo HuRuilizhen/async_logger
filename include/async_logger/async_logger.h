@@ -73,7 +73,7 @@ class Logger {
   // Config variables
   Level level_{Level::Info};
   int flag_{};
-  int file_mode_{};
+  std::ios::openmode file_mode_{};
   bool need_rotation_{};
   std::tm time_stamp_{};
   std::ofstream ofstream_{};
