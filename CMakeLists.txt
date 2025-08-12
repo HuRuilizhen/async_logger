@@ -109,5 +109,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Uninstall.cmake.in
                ${CMAKE_CURRENT_BINARY_DIR}/Uninstall.cmake @ONLY)
 
 add_custom_target(
-  uninstall_async_buffer COMMAND ${CMAKE_COMMAND} -P
+  uninstall_async_logger COMMAND ${CMAKE_COMMAND} -P
                                  ${CMAKE_CURRENT_BINARY_DIR}/Uninstall.cmake)
