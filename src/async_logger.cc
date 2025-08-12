@@ -2,9 +2,12 @@
 
 #include <chrono>
 #include <ctime>
+#include <fstream>
 #include <ostream>
 #include <source_location>
 #include <sstream>
+#include <string>
+#include <string_view>
 #include <thread>
 
 namespace AsyncLogger::AnsiColor {
@@ -21,7 +24,7 @@ inline constexpr std::string_view BG_RED = "\033[41m";
 
 namespace AsyncLogger {
 
-inline std::string_view getLevelString(Level lvl) {
+const std::string_view LoggerUtils::getLevelString(Level lvl) {
   switch (lvl) {
     case Level::Debug:
       return "DEBUG";
@@ -38,7 +41,7 @@ inline std::string_view getLevelString(Level lvl) {
   }
 }
 
-inline std::string_view getLevelColor(Level lvl) {
+const std::string_view LoggerUtils::getLevelColor(Level lvl) {
   switch (lvl) {
     case Level::Debug:
       return AnsiColor::CYAN;
@@ -55,7 +58,59 @@ inline std::string_view getLevelColor(Level lvl) {
   }
 }
 
-constexpr std::string_view filename_only(std::string_view path) {
+const std::tm LoggerUtils::getCurrentTime() {
+  auto now = std::chrono::system_clock::now();
+  auto tt = std::chrono::system_clock::to_time_t(now);
+  std::tm tm{};
+#ifdef _WIN32
+  localtime_s(&tm, &tt);
+#else
+  localtime_r(&tt, &tm);
+#endif
+  return tm;
+}
+
+const std::tm (*LoggerUtils::timeFuncPtr)() = &getCurrentTime;
+
+const std::tm LoggerUtils::getRoundedTime(std::tm time) {
+  std::tm rounded_time = time;
+  rounded_time.tm_hour = 0;
+  rounded_time.tm_min = 0;
+  rounded_time.tm_sec = 0;
+  return rounded_time;
+}
+
+const bool LoggerUtils::tryUpdateTimestamp(Logger& lg) {
+  std::tm cur_time = timeFuncPtr();
+  if (cur_time.tm_year == lg.time_stamp_.tm_year &&
+      cur_time.tm_mon == lg.time_stamp_.tm_mon &&
+      cur_time.tm_mday == lg.time_stamp_.tm_mday)
+    return false;
+  lg.time_stamp_ = getRoundedTime(cur_time);
+  return true;
+}
+
+const std::string LoggerUtils::getDefaultFilename() {
+  std::tm time = timeFuncPtr();
+  char filename[20];
+  std::strftime(filename, sizeof(filename), "%Y-%m-%d.log", &time);
+  return filename;
+}
+
+const bool LoggerUtils::tryUpdateFileStream(Logger& lg) {
+  if (tryUpdateTimestamp(lg)) {
+    lg.ofstream_.close();
+    lg.ofstream_.open(getDefaultFilename(), lg.file_mode_);
+    if (!lg.ofstream_.is_open()) {
+      std::cerr << "Failed to open file: " << getDefaultFilename() << std::endl;
+      exit(1);
+    }
+  }
+  return false;
+}
+
+constexpr std::string_view LoggerUtils::getFilenameInPath(
+    std::string_view path) {
   auto pos = path.find_last_of("/\\");
   return pos == std::string_view::npos ? path : path.substr(pos + 1);
 }
@@ -66,14 +121,24 @@ void Logger::init(const Config& config) {
   lg.flag_ = config.flag;
 
   if (config.flag & OutstreamFlag::out_file) {
-    std::ios::openmode open_mode = std::ios::out;
+    lg.file_mode_ = std::ios::out;
     if (config.flag & OutstreamFlag::mode_append)
-      open_mode |= std::ios::app;
+      lg.file_mode_ |= std::ios::app;
     else
-      open_mode |= std::ios::trunc;
-    lg.ofstream_.open(config.filename, open_mode);
+      lg.file_mode_ |= std::ios::trunc;
+
+    std::string filename;
+    if (config.filename.empty()) {
+      lg.time_stamp_ = LoggerUtils::getRoundedTime(LoggerUtils::timeFuncPtr());
+      lg.need_rotation_ = true;
+      filename = LoggerUtils::getDefaultFilename();
+    } else {
+      filename = config.filename;
+    }
+
+    lg.ofstream_.open(filename.c_str(), lg.file_mode_);
     if (!lg.ofstream_.is_open()) {
-      std::cerr << "Failed to open file: " << config.filename << std::endl;
+      std::cerr << "Failed to open file: " << filename << std::endl;
       exit(1);
     }
   }
@@ -121,24 +186,17 @@ void Logger::enqueue(Level lvl, const std::source_location& loc,
 }
 
 std::string Logger::format(const Entry& entry, bool colored) {
-  auto now = std::chrono::system_clock::now();
-  auto tt = std::chrono::system_clock::to_time_t(now);
-  std::tm tm{};
-#ifdef _WIN32
-  localtime_s(&tm, &tt);
-#else
-  localtime_r(&tt, &tm);
-#endif
+  std::tm tm = LoggerUtils::timeFuncPtr();
   char time_buf[20];
   std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &tm);
 
   std::ostringstream oss;
-  if (flag_ & colored) oss << getLevelColor(entry.lvl);
-  oss << "[" << getLevelString(entry.lvl) << "]";
+  if (flag_ & colored) oss << LoggerUtils::getLevelColor(entry.lvl);
+  oss << "[" << LoggerUtils::getLevelString(entry.lvl) << "]";
   if (flag_ & colored) oss << AnsiColor::RESET;
   oss << " [" << time_buf << "] ";
-  oss << "[" << filename_only(entry.loc.file_name()) << ":" << entry.loc.line()
-      << "] ";
+  oss << "[" << LoggerUtils::getFilenameInPath(entry.loc.file_name()) << ":"
+      << entry.loc.line() << "] ";
   oss << entry.msg;
   return oss.str();
 }
@@ -148,7 +206,10 @@ void Logger::log(const Entry& entry) {
     std::cout << format(entry, flag_ & out_color) << std::endl;
   if (flag_ & OutstreamFlag::out_stderr)
     std::cerr << format(entry, flag_ & out_color) << std::endl;
-  if (flag_ & OutstreamFlag::out_file) ofstream_ << format(entry) << std::endl;
+  if (flag_ & OutstreamFlag::out_file) {
+    if (need_rotation_) LoggerUtils::tryUpdateFileStream(instance());
+    ofstream_ << format(entry) << std::endl;
+  }
 }
 
 void Logger::workerLoop() {

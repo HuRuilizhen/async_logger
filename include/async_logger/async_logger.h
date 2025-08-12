@@ -24,7 +24,8 @@ enum OutstreamFlag {
 
 struct Config {
   std::string filename{};
-  int flag = OutstreamFlag::out_stdout | OutstreamFlag::out_color;
+  int flag = OutstreamFlag::out_stdout | OutstreamFlag::out_file |
+             OutstreamFlag::out_color | OutstreamFlag::mode_append;
   Level level = Level::Info;
 };
 
@@ -62,8 +63,6 @@ class Logger {
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;
 
-  int flag_{};
-
   void workerLoop();
   void enqueue(Level lvl, const std::source_location& loc,
                const std::string& msg);
@@ -71,13 +70,36 @@ class Logger {
   std::string format(const Entry& entry, bool colored = false);
   static Logger& instance();
 
+  // Config variables
+  Level level_{Level::Info};
+  int flag_{};
+  std::ios::openmode file_mode_{};
+  bool need_rotation_{};
+  std::tm time_stamp_{};
+  std::ofstream ofstream_{};
+
   // Ring buffer for storing log entries
   RingBuffer::RingBufferSemiAtomicSlot<Entry> buffer_{1024};
 
+  // Thread and state related
   std::thread worker_;
   std::atomic<bool> running_{false};
-  std::ofstream ofstream_;
-  Level level_{Level::Info};
+
+  // Friend utils class
+  friend class LoggerUtils;
+};
+
+class LoggerUtils {
+ public:
+  static const std::string_view getLevelString(Level lvl);
+  static const std::string_view getLevelColor(Level lvl);
+  static const std::tm getCurrentTime();
+  static const std::tm getRoundedTime(std::tm time);
+  static const bool tryUpdateTimestamp(Logger& lg);
+  static const std::string getDefaultFilename();
+  static const bool tryUpdateFileStream(Logger& lg);
+  static constexpr std::string_view getFilenameInPath(std::string_view path);
+  static const std::tm (*timeFuncPtr)();
 };
 
 }  // namespace AsyncLogger
