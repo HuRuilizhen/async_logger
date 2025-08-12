@@ -5,7 +5,6 @@
 #include <atomic>
 #include <fstream>
 #include <source_location>
-#include <sstream>
 #include <string>
 #include <thread>
 
@@ -97,7 +96,7 @@ class LoggerUtils {
   static const std::tm getCurrentTime();
   static const std::tm getRoundedTime(std::tm time);
   static const bool tryUpdateTimestamp(Logger& lg);
-  static const std::ostringstream getDefaultFilename();
+  static const std::string getDefaultFilename();
   static const bool tryUpdateFileStream(Logger& lg);
   static constexpr std::string_view getFilenameInPath(std::string_view path);
   static const std::tm (*timeFuncPtr)();

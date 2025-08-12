@@ -30,17 +30,14 @@ TEST(AsyncLogger, EmptyFileName) {
   AsyncLogger::Logger::info("test");
   AsyncLogger::Logger::shutdown();
 
-  std::stringstream filename;
-  static const std::string ext = ".log";
   std::tm tm = AsyncLogger::LoggerUtils::getCurrentTime();
-  char time_buf[20];
-  std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d", &tm);
-  filename << static_cast<std::string>(time_buf) << ext;
+  char filename[20];
+  std::strftime(filename, sizeof(filename), "%Y-%m-%d.log", &tm);
 
-  std::string content = readFile(filename.str());
+  std::string content = readFile(filename);
   EXPECT_NE(content.find("test"), std::string::npos);
 
-  std::remove(filename.str().c_str());
+  std::remove(filename);
 }
 
 TEST(AsyncLogger, AppendFileMode) {
@@ -93,7 +90,7 @@ TEST(AsyncLogger, LogFileRotation) {
   AsyncLogger::Logger::info("alpha");
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-  std::string filename = AsyncLogger::LoggerUtils::getDefaultFilename().str();
+  std::string filename = AsyncLogger::LoggerUtils::getDefaultFilename();
   std::string content = readFile(filename);
   EXPECT_NE(content.find("alpha"), std::string::npos);
   std::remove(filename.c_str());
@@ -102,7 +99,7 @@ TEST(AsyncLogger, LogFileRotation) {
   AsyncLogger::Logger::info("beta");
   AsyncLogger::Logger::shutdown();
 
-  filename = AsyncLogger::LoggerUtils::getDefaultFilename().str();
+  filename = AsyncLogger::LoggerUtils::getDefaultFilename();
   content = readFile(filename);
   EXPECT_NE(content.find("beta"), std::string::npos);
   std::remove(filename.c_str());

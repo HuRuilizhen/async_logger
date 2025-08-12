@@ -90,23 +90,19 @@ const bool LoggerUtils::tryUpdateTimestamp(Logger& lg) {
   return true;
 }
 
-const std::ostringstream LoggerUtils::getDefaultFilename() {
+const std::string LoggerUtils::getDefaultFilename() {
   std::tm time = timeFuncPtr();
-  std::ostringstream filename;
-  static const std::string ext = ".log";
-  char time_buf[20];
-  std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d", &time);
-  filename << static_cast<std::string>(time_buf) << ext;
+  char filename[20];
+  std::strftime(filename, sizeof(filename), "%Y-%m-%d.log", &time);
   return filename;
 }
 
 const bool LoggerUtils::tryUpdateFileStream(Logger& lg) {
   if (tryUpdateTimestamp(lg)) {
     lg.ofstream_.close();
-    lg.ofstream_.open(getDefaultFilename().str(), lg.file_mode_);
+    lg.ofstream_.open(getDefaultFilename(), lg.file_mode_);
     if (!lg.ofstream_.is_open()) {
-      std::cerr << "Failed to open file: " << getDefaultFilename().str()
-                << std::endl;
+      std::cerr << "Failed to open file: " << getDefaultFilename() << std::endl;
       exit(1);
     }
   }
@@ -135,7 +131,7 @@ void Logger::init(const Config& config) {
     if (config.filename.empty()) {
       lg.time_stamp_ = LoggerUtils::getRoundedTime(LoggerUtils::timeFuncPtr());
       lg.need_rotation_ = true;
-      filename = LoggerUtils::getDefaultFilename().str();
+      filename = LoggerUtils::getDefaultFilename();
     } else {
       filename = config.filename;
     }
