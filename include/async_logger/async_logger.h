@@ -77,7 +77,7 @@ class Logger {
   int file_mode_{};
   bool need_rotation_{};
   std::tm time_stamp_{};
-  std::ofstream ofstream_;
+  std::ofstream ofstream_{};
 
   // Ring buffer for storing log entries
   RingBuffer::RingBufferSemiAtomicSlot<Entry> buffer_{1024};
@@ -100,6 +100,7 @@ class LoggerUtils {
   static const std::ostringstream getDefaultFilename();
   static const bool tryUpdateFileStream(Logger& lg);
   static constexpr std::string_view getFilenameInPath(std::string_view path);
+  static const std::tm (*timeFuncPtr)();
 };
 
 }  // namespace AsyncLogger

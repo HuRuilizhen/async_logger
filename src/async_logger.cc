@@ -70,6 +70,8 @@ const std::tm LoggerUtils::getCurrentTime() {
   return tm;
 }
 
+const std::tm (*LoggerUtils::timeFuncPtr)() = &getCurrentTime;
+
 const std::tm LoggerUtils::getRoundedTime(std::tm time) {
   std::tm rounded_time = time;
   rounded_time.tm_hour = 0;
@@ -79,7 +81,7 @@ const std::tm LoggerUtils::getRoundedTime(std::tm time) {
 }
 
 const bool LoggerUtils::tryUpdateTimestamp(Logger& lg) {
-  std::tm cur_time = getCurrentTime();
+  std::tm cur_time = timeFuncPtr();
   if (cur_time.tm_year == lg.time_stamp_.tm_year &&
       cur_time.tm_mon == lg.time_stamp_.tm_mon &&
       cur_time.tm_mday == lg.time_stamp_.tm_mday)
@@ -89,7 +91,7 @@ const bool LoggerUtils::tryUpdateTimestamp(Logger& lg) {
 }
 
 const std::ostringstream LoggerUtils::getDefaultFilename() {
-  std::tm time = getCurrentTime();
+  std::tm time = timeFuncPtr();
   std::ostringstream filename;
   static const std::string ext = ".log";
   char time_buf[20];
@@ -131,8 +133,7 @@ void Logger::init(const Config& config) {
 
     std::string filename;
     if (config.filename.empty()) {
-      lg.time_stamp_ =
-          LoggerUtils::getRoundedTime(LoggerUtils::getCurrentTime());
+      lg.time_stamp_ = LoggerUtils::getRoundedTime(LoggerUtils::timeFuncPtr());
       lg.need_rotation_ = true;
       filename = LoggerUtils::getDefaultFilename().str();
     } else {
@@ -189,7 +190,7 @@ void Logger::enqueue(Level lvl, const std::source_location& loc,
 }
 
 std::string Logger::format(const Entry& entry, bool colored) {
-  std::tm tm = LoggerUtils::getCurrentTime();
+  std::tm tm = LoggerUtils::timeFuncPtr();
   char time_buf[20];
   std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &tm);
 

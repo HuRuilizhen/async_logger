@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <ctime>
 #include <string>
+#include <thread>
 
 #include "async_logger/async_logger.h"
 
@@ -15,6 +15,13 @@ std::string readFile(const std::string& filename) {
                       std::istreambuf_iterator<char>());
   return content;
 }
+
+const std::tm newTimeFunc() {
+  std::tm time = AsyncLogger::LoggerUtils::getCurrentTime();
+  time.tm_mday += 1;
+  return time;
+}
+
 }  // namespace
 
 TEST(AsyncLogger, EmptyFileName) {
@@ -79,4 +86,24 @@ TEST(AsyncLogger, TruncFileMode) {
   EXPECT_NE(content.find("beta"), std::string::npos);
 
   std::remove(TMPLOG.c_str());
+}
+
+TEST(AsyncLogger, LogFileRotation) {
+  AsyncLogger::Logger::init(AsyncLogger::Config());
+  AsyncLogger::Logger::info("alpha");
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+  std::string filename = AsyncLogger::LoggerUtils::getDefaultFilename().str();
+  std::string content = readFile(filename);
+  EXPECT_NE(content.find("alpha"), std::string::npos);
+  std::remove(filename.c_str());
+
+  AsyncLogger::LoggerUtils::timeFuncPtr = &newTimeFunc;
+  AsyncLogger::Logger::info("beta");
+  AsyncLogger::Logger::shutdown();
+
+  filename = AsyncLogger::LoggerUtils::getDefaultFilename().str();
+  content = readFile(filename);
+  EXPECT_NE(content.find("beta"), std::string::npos);
+  std::remove(filename.c_str());
 }
