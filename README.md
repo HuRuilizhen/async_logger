@@ -123,7 +123,7 @@ target_link_libraries(my_app PRIVATE
 If you installed via CMake:
 
 ```bash
-sudo cmake --build build --target uninstall
+sudo cmake --build build --target uninstall_async_logger
 ```
 
 ## Contributing
