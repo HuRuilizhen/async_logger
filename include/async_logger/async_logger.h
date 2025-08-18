@@ -38,7 +38,7 @@ struct Entry {
 class Logger {
  public:
   // Initialize logger: opens file and starts worker thread
-  static void init(const Config& config);
+  static void init(const Config& config = Config());
   // Shutdown logger: stops worker and flushes remaining logs
   static void shutdown();
 
