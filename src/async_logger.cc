@@ -99,6 +99,7 @@ const std::string LoggerUtils::getDefaultFilename() {
 
 const bool LoggerUtils::tryUpdateFileStream(Logger& lg) {
   if (tryUpdateTimestamp(lg)) {
+    lg.ofstream_.flush();
     lg.ofstream_.close();
     lg.ofstream_.open(getDefaultFilename(), lg.file_mode_);
     if (!lg.ofstream_.is_open()) {
@@ -151,7 +152,10 @@ void Logger::shutdown() {
   auto& lg = instance();
   lg.running_ = false;
   if (lg.worker_.joinable()) lg.worker_.join();
-  if (lg.ofstream_.is_open()) lg.ofstream_.close();
+  if (lg.ofstream_.is_open()) {
+    lg.ofstream_.flush();
+    lg.ofstream_.close();
+  }
 }
 
 void Logger::debug(const std::string& msg, const std::source_location& loc) {
