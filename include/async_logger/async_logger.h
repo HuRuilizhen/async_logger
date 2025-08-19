@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <fstream>
+#include <mutex>
 #include <source_location>
 #include <string>
 #include <thread>
@@ -70,8 +71,14 @@ class Logger {
   std::string format(const Entry& entry, bool colored = false);
   static Logger& instance();
 
+  // Initialize private method
+  void loadConfig(const Config& config);
+  void ensureInit();
+
   // Config variables
-  Level level_{Level::Info};
+  std::mutex init_mutex_;
+  std::atomic<bool> has_init_{};
+  std::atomic<Level> level_{Level::Info};
   int flag_{};
   std::ios::openmode file_mode_{};
   bool need_rotation_{};
