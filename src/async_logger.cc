@@ -1,8 +1,10 @@
 #include "async_logger/async_logger.h"
 
+#include <atomic>
 #include <chrono>
 #include <ctime>
 #include <fstream>
+#include <mutex>
 #include <ostream>
 #include <source_location>
 #include <sstream>
@@ -99,6 +101,7 @@ const std::string LoggerUtils::getDefaultFilename() {
 
 const bool LoggerUtils::tryUpdateFileStream(Logger& lg) {
   if (tryUpdateTimestamp(lg)) {
+    lg.ofstream_.flush();
     lg.ofstream_.close();
     lg.ofstream_.open(getDefaultFilename(), lg.file_mode_);
     if (!lg.ofstream_.is_open()) {
@@ -115,59 +118,95 @@ constexpr std::string_view LoggerUtils::getFilenameInPath(
   return pos == std::string_view::npos ? path : path.substr(pos + 1);
 }
 
-void Logger::init(const Config& config) {
-  auto& lg = instance();
-  lg.level_ = config.level;
-  lg.flag_ = config.flag;
+void Logger::loadConfig(const Config& config) {
+  level_.store(config.level, std::memory_order_relaxed);
+  flag_ = config.flag;
 
   if (config.flag & OutstreamFlag::out_file) {
-    lg.file_mode_ = std::ios::out;
+    file_mode_ = std::ios::out;
     if (config.flag & OutstreamFlag::mode_append)
-      lg.file_mode_ |= std::ios::app;
+      file_mode_ |= std::ios::app;
     else
-      lg.file_mode_ |= std::ios::trunc;
+      file_mode_ |= std::ios::trunc;
 
     std::string filename;
     if (config.filename.empty()) {
-      lg.time_stamp_ = LoggerUtils::getRoundedTime(LoggerUtils::timeFuncPtr());
-      lg.need_rotation_ = true;
+      time_stamp_ = LoggerUtils::getRoundedTime(LoggerUtils::timeFuncPtr());
+      need_rotation_ = true;
       filename = LoggerUtils::getDefaultFilename();
     } else {
       filename = config.filename;
     }
 
-    lg.ofstream_.open(filename.c_str(), lg.file_mode_);
-    if (!lg.ofstream_.is_open()) {
+    ofstream_.open(filename.c_str(), file_mode_);
+    if (!ofstream_.is_open()) {
       std::cerr << "Failed to open file: " << filename << std::endl;
       exit(1);
     }
   }
+}
+
+void Logger::init(const Config& config) {
+  auto& lg = instance();
+  std::lock_guard<std::mutex> lock(lg.init_mutex_);
+  if (lg.has_init_.load(std::memory_order_relaxed)) return;
+
+  lg.loadConfig(config);
 
   lg.running_ = true;
   lg.worker_ = std::thread(&Logger::workerLoop, &lg);
+  lg.has_init_.store(true, std::memory_order_release);
+}
+
+void Logger::ensureInit() {
+  // fast path
+  if (has_init_.load(std::memory_order_acquire)) return;
+
+  // slow path
+  std::lock_guard<std::mutex> lock(init_mutex_);
+  if (has_init_.load(std::memory_order_acquire)) return;
+  loadConfig(Config());
+  running_ = true;
+  worker_ = std::thread(&Logger::workerLoop, this);
+  has_init_.store(true, std::memory_order_release);
 }
 
 void Logger::shutdown() {
   auto& lg = instance();
   lg.running_ = false;
   if (lg.worker_.joinable()) lg.worker_.join();
-  if (lg.ofstream_.is_open()) lg.ofstream_.close();
+  if (lg.ofstream_.is_open()) {
+    lg.ofstream_.flush();
+    lg.ofstream_.close();
+  }
+  std::lock_guard<std::mutex> lock(lg.init_mutex_);
+  lg.has_init_.store(false, std::memory_order_release);
 }
 
 void Logger::debug(const std::string& msg, const std::source_location& loc) {
-  instance().enqueue(Level::Debug, loc, msg);
+  auto& lg = instance();
+  lg.ensureInit();
+  lg.enqueue(Level::Debug, loc, msg);
 }
 void Logger::info(const std::string& msg, const std::source_location& loc) {
-  instance().enqueue(Level::Info, loc, msg);
+  auto& lg = instance();
+  lg.ensureInit();
+  lg.enqueue(Level::Info, loc, msg);
 }
 void Logger::warn(const std::string& msg, const std::source_location& loc) {
-  instance().enqueue(Level::Warn, loc, msg);
+  auto& lg = instance();
+  lg.ensureInit();
+  lg.enqueue(Level::Warn, loc, msg);
 }
 void Logger::error(const std::string& msg, const std::source_location& loc) {
-  instance().enqueue(Level::Error, loc, msg);
+  auto& lg = instance();
+  lg.ensureInit();
+  lg.instance().enqueue(Level::Error, loc, msg);
 }
 void Logger::fatal(const std::string& msg, const std::source_location& loc) {
-  instance().enqueue(Level::Fatal, loc, msg);
+  auto& lg = instance();
+  lg.ensureInit();
+  lg.enqueue(Level::Fatal, loc, msg);
 }
 
 Logger& Logger::instance() {
@@ -181,7 +220,7 @@ Logger::~Logger() {
 
 void Logger::enqueue(Level lvl, const std::source_location& loc,
                      const std::string& msg) {
-  if (lvl < level_) return;
+  if (lvl < level_.load(std::memory_order_relaxed)) return;
   buffer_.tryPush({lvl, loc, msg});
 }
 

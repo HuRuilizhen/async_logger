@@ -25,8 +25,6 @@ const std::tm newTimeFunc() {
 }  // namespace
 
 TEST(AsyncLogger, EmptyFileName) {
-  // Init with defaut config value
-  AsyncLogger::Logger::init(AsyncLogger::Config());
   AsyncLogger::Logger::info("test");
   AsyncLogger::Logger::shutdown();
 
@@ -86,7 +84,6 @@ TEST(AsyncLogger, TruncFileMode) {
 }
 
 TEST(AsyncLogger, LogFileRotation) {
-  AsyncLogger::Logger::init(AsyncLogger::Config());
   AsyncLogger::Logger::info("alpha");
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
