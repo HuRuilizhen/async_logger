@@ -34,7 +34,7 @@ target_link_libraries(
   async_logger PUBLIC $<$<BOOL:${ring_buffer_FOUND}>:ring_buffer::ring_buffer>
                       $<$<NOT:$<BOOL:${ring_buffer_FOUND}>>:ring_buffer>)
 
-option(ENABLE_TESTS "Enable tests" ON)
+option(ENABLE_TESTS "Enable tests" OFF)
 
 if(ENABLE_TESTS)
   message(STATUS "Tests enabled")
@@ -61,7 +61,7 @@ if(ENABLE_TESTS)
   add_test(NAME async_logger_file_test COMMAND async_logger_file_test)
 endif(ENABLE_TESTS)
 
-option(ENABLE_EXAMPLE "Enable example" ON)
+option(ENABLE_EXAMPLE "Enable example" OFF)
 
 if(ENABLE_EXAMPLE)
   message(STATUS "Example enabled")
