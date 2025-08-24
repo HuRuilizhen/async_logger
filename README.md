@@ -14,8 +14,8 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 ## Requirements
 
 - C++20-compatible compiler  
-- CMake ≥ 3.15  
-- Your `ring_buffer` library (headers & CMake config)  
+- CMake >= 3.15  
+- [`ring_buffer`](https://github.com/HuRuilizhen/ring_buffer) library (headers & CMake config)  
 - (Optional) GoogleTest for unit tests
 
 ## Table of Contents
@@ -36,10 +36,10 @@ cmake -S . -B build -G Ninja    # or Xcode / "Unix Makefiles"
 cmake --build build
 ````
 
-Enable tests (and fetch GoogleTest) in one go:
+Enable tests and example (and fetch GoogleTest) in one go:
 
 ```bash
-cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DENABLE_TESTS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DENABLE_TESTS=ON -DENABLE_EXAMPLE=ON
 cmake --build build
 sudo cmake --install build
 ```
@@ -47,7 +47,7 @@ sudo cmake --install build
 Build without tests for a lean installation:
 
 ```bash
-cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 cmake --build build
 sudo cmake --install build
 ```
@@ -57,8 +57,7 @@ sudo cmake --install build
 After a test-enabled build:
 
 ```bash
-cd build
-ctest --output-on-failure
+cd build && ctest --output-on-failure
 ```
 
 ## Using the Library
@@ -101,7 +100,7 @@ include(FetchContent)
 FetchContent_Declare(
   ring_buffer
   GIT_REPOSITORY https://github.com/HuRuilizhen/ring_buffer.git
-  GIT_TAG        v1.0.0
+  GIT_TAG        v1.0.3
 )
 # 2) async_logger itself
 FetchContent_Declare(
