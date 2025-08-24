@@ -4,6 +4,7 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #include <mutex>
 #include <ostream>
 #include <source_location>
