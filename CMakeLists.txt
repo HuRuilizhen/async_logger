@@ -22,7 +22,7 @@ else()
   FetchContent_Declare(
     ring_buffer
     GIT_REPOSITORY https://github.com/HuRuilizhen/ring_buffer.git
-    GIT_TAG v1.0.1)
+    GIT_TAG v1.0.3)
   FetchContent_MakeAvailable(ring_buffer)
 endif()
 

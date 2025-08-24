@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ring_buffer/mpsc.h>
+#include <ring_buffer/mpsc_ring_buffer.h>
 
 #include <atomic>
 #include <fstream>
@@ -86,7 +86,7 @@ class Logger {
   std::ofstream ofstream_{};
 
   // Ring buffer for storing log entries
-  RingBuffer::RingBufferSemiAtomicSlot<Entry> buffer_{1024};
+  RingBuffer::MPSCRingBuffer<Entry> buffer_{1024};
 
   // Thread and state related
   std::thread worker_;
