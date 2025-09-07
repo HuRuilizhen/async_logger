@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project(
   async_logger
-  VERSION 1.0.0
+  VERSION 0.1.0
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -22,7 +22,7 @@ else()
   FetchContent_Declare(
     ring_buffer
     GIT_REPOSITORY https://github.com/HuRuilizhen/ring_buffer.git
-    GIT_TAG v1.0.3)
+    GIT_TAG v0.1.0)
   FetchContent_MakeAvailable(ring_buffer)
 endif()
 

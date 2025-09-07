@@ -98,13 +98,13 @@ include(FetchContent)
 FetchContent_Declare(
   ring_buffer
   GIT_REPOSITORY https://github.com/HuRuilizhen/ring_buffer.git
-  GIT_TAG        v1.0.3
+  GIT_TAG        v0.1.0
 )
 # 2) async_logger itself
 FetchContent_Declare(
   async_logger
   GIT_REPOSITORY https://github.com/YourUser/async_logger.git
-  GIT_TAG        v1.0.0
+  GIT_TAG        v0.1.0
 )
 
 FetchContent_MakeAvailable(ring_buffer async_logger)
