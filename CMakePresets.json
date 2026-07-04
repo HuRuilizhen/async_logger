@@ -9,7 +9,7 @@
     {
       "name": "base",
       "hidden": true,
-      "generator": "Unix Makefiles",
+      "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "ASYNC_LOGGER_RING_BUFFER_PROVIDER": "FETCH",
