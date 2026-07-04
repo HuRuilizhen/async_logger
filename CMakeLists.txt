@@ -1,9 +1,15 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.20)
 
 project(
   async_logger
   VERSION 0.1.0
   LANGUAGES CXX)
+
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE
+      Debug
+      CACHE STRING "Build type" FORCE)
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,28 +17,65 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-find_package(ring_buffer QUIET)
+set(ASYNC_LOGGER_RING_BUFFER_VERSION 0.1.0)
+set(ASYNC_LOGGER_RING_BUFFER_PROVIDER
+    "AUTO"
+    CACHE STRING "Dependency provider for ring_buffer: FETCH, PACKAGE, or AUTO")
+set_property(
+  CACHE ASYNC_LOGGER_RING_BUFFER_PROVIDER PROPERTY STRINGS FETCH PACKAGE AUTO)
 
-if(ring_buffer_FOUND)
-  message(STATUS "Found local ring_buffer: using ring_buffer::ring_buffer")
-else()
-  message(STATUS "ring_buffer not found locally; fetching via FetchContent")
-
+if(TARGET ring_buffer::ring_buffer)
+  message(STATUS "Using caller-provided ring_buffer target: ring_buffer::ring_buffer")
+elseif(TARGET ring_buffer)
+  message(STATUS "Using caller-provided ring_buffer target: ring_buffer")
+elseif(ASYNC_LOGGER_RING_BUFFER_PROVIDER STREQUAL "FETCH")
+  message(STATUS "Using ring_buffer provider: FETCH")
   include(FetchContent)
   FetchContent_Declare(
     ring_buffer
     GIT_REPOSITORY https://github.com/HuRuilizhen/ring_buffer.git
-    GIT_TAG v0.1.0)
+    GIT_TAG v${ASYNC_LOGGER_RING_BUFFER_VERSION})
   FetchContent_MakeAvailable(ring_buffer)
+elseif(ASYNC_LOGGER_RING_BUFFER_PROVIDER STREQUAL "PACKAGE")
+  message(STATUS "Using ring_buffer provider: PACKAGE")
+  find_package(ring_buffer ${ASYNC_LOGGER_RING_BUFFER_VERSION} CONFIG REQUIRED)
+elseif(ASYNC_LOGGER_RING_BUFFER_PROVIDER STREQUAL "AUTO")
+  message(STATUS "Using ring_buffer provider: AUTO")
+  find_package(ring_buffer ${ASYNC_LOGGER_RING_BUFFER_VERSION} CONFIG QUIET)
+
+  if(ring_buffer_FOUND)
+    message(STATUS "Found local ring_buffer: using ring_buffer::ring_buffer")
+  else()
+    message(STATUS "ring_buffer package not found; falling back to FetchContent")
+
+    include(FetchContent)
+    FetchContent_Declare(
+      ring_buffer
+      GIT_REPOSITORY https://github.com/HuRuilizhen/ring_buffer.git
+      GIT_TAG v${ASYNC_LOGGER_RING_BUFFER_VERSION})
+    FetchContent_MakeAvailable(ring_buffer)
+  endif()
+else()
+  message(
+    FATAL_ERROR
+      "Invalid ASYNC_LOGGER_RING_BUFFER_PROVIDER='${ASYNC_LOGGER_RING_BUFFER_PROVIDER}'. "
+      "Expected one of: FETCH, PACKAGE, AUTO.")
+endif()
+
+if(TARGET ring_buffer::ring_buffer)
+  set(ASYNC_LOGGER_RING_BUFFER_TARGET ring_buffer::ring_buffer)
+elseif(TARGET ring_buffer)
+  set(ASYNC_LOGGER_RING_BUFFER_TARGET ring_buffer)
+else()
+  message(FATAL_ERROR "ring_buffer target not found after dependency resolution")
 endif()
 
 add_library(async_logger STATIC src/async_logger.cc)
+add_library(async_logger::async_logger ALIAS async_logger)
 target_include_directories(
   async_logger PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                       $<INSTALL_INTERFACE:include>)
-target_link_libraries(
-  async_logger PUBLIC $<$<BOOL:${ring_buffer_FOUND}>:ring_buffer::ring_buffer>
-                      $<$<NOT:$<BOOL:${ring_buffer_FOUND}>>:ring_buffer>)
+target_link_libraries(async_logger PUBLIC ${ASYNC_LOGGER_RING_BUFFER_TARGET})
 
 option(ENABLE_TESTS "Enable tests" OFF)
 
@@ -68,8 +111,10 @@ if(ENABLE_EXAMPLE)
   add_executable(async_logger_example examples/async_logger_example.cc)
   add_executable(async_logger_macro_example
                  examples/async_logger_macro_example.cc)
-  add_compile_options(async_logger_example PRIVATE -g)
-  add_compile_options(async_logger_macro_example PRIVATE -g)
+  target_compile_options(
+    async_logger_example PRIVATE $<$<CONFIG:Debug>:-O0 -g>)
+  target_compile_options(
+    async_logger_macro_example PRIVATE $<$<CONFIG:Debug>:-O0 -g>)
   target_link_libraries(async_logger_example PRIVATE async_logger)
   target_link_libraries(async_logger_macro_example PRIVATE async_logger)
 endif(ENABLE_EXAMPLE)

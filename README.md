@@ -2,7 +2,7 @@
 
 ![Build Status](https://img.shields.io/github/actions/workflow/status/HuRuilizhen/async_logger/cmake-multi-platform.yml?branch=release)
 
-An industrial-grade, asynchronous C++20 logging library built on a high-performance ring buffer. Unit tests and sample usage provided. Designed for easy integration via CMake’s `find_package` or `FetchContent`.
+An industrial-grade, asynchronous C++20 logging library built on a high-performance ring buffer. Unit tests and sample usage provided. Designed for easy integration via CMake's `find_package` or `FetchContent`.
 
 ## Features
 
@@ -17,8 +17,10 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 ## Requirements
 
 - C++20-compatible compiler  
-- CMake >= 3.15  
-- [`ring_buffer`](https://github.com/HuRuilizhen/ring_buffer) library (headers & CMake config)  
+- CMake >= 3.20  
+- Network access for dependency fetching in development mode, or a local
+  [`ring_buffer`](https://github.com/HuRuilizhen/ring_buffer) installation when using the
+  `PACKAGE` provider
 - (Optional) GoogleTest for unit tests
 
 ## Table of Contents
@@ -46,71 +48,98 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 
 ### Configuration
 
-| Option                          | Default | Description                               |
-| ------------------------------- | ------- | ----------------------------------------- |
-| `ENABLE_TESTS`                  | OFF     | Build unit tests (requires GTest)         |
-| `ENABLE_EXAMPLE`                | OFF     | Build examples                            |
-| `CMAKE_EXPORT_COMPILE_COMMANDS` | OFF     | Generate `compile_commands.json` for IDEs |
+| Option                               | Default | Description                                                    |
+| ------------------------------------ | ------- | -------------------------------------------------------------- |
+| `ENABLE_TESTS`                       | OFF     | Build unit tests                                               |
+| `ENABLE_EXAMPLE`                     | OFF     | Build examples                                                 |
+| `CMAKE_EXPORT_COMPILE_COMMANDS`      | OFF     | Generate `compile_commands.json` for IDEs                      |
+| `ASYNC_LOGGER_RING_BUFFER_PROVIDER`  | `AUTO`  | Resolve `ring_buffer` via `FETCH`, `PACKAGE`, or `AUTO`        |
 
 ### Execution
 
 ```bash
-# Default build
-cmake -S . -B build
-cmake --build build
+# Recommended development build
+cmake --preset debug
+cmake --build --preset debug
 
-# Build with tests + examples
-cmake -S . -B build -DENABLE_TESTS=ON -DENABLE_EXAMPLE=ON
-cmake --build build
+# Release build
+cmake --preset release
+cmake --build --preset release
 
-# Install
-sudo cmake --install build
+# Run tests
+ctest --preset debug
+
+# Strictly use an installed ring_buffer package
+cmake -S . -B build/package \
+  -DASYNC_LOGGER_RING_BUFFER_PROVIDER=PACKAGE \
+  -DCMAKE_BUILD_TYPE=Debug
+
+# Try local package first, then fall back to FetchContent
+cmake -S . -B build/auto \
+  -DASYNC_LOGGER_RING_BUFFER_PROVIDER=AUTO \
+  -DCMAKE_BUILD_TYPE=Debug
+
+# Install from a configured build tree
+sudo cmake --install build/release
 ```
 
 ## Running Examples
 
 ```bash
-cd ./build/bin && ./async_logger_example
+./build/debug/bin/async_logger_example
 ```
 
 or 
 
 ```bash
-cd ./build/bin && ./async_logger_macro_example
+./build/debug/bin/async_logger_macro_example
 ```
 
 ## Running Tests
 
 ```bash
-cd ./build && ctest --output-on-failure
+ctest --preset debug
 ```
 
 ## Using the Library
 
 ### Including the Library
 
-Without installation, pull both `ring_buffer` and `async_logger`:
+Without installation, pull `async_logger` via `FetchContent`:
 
 ```cmake
 include(FetchContent)
 
-# 1) ring_buffer dependency (optional)
-FetchContent_Declare(
-  ring_buffer
-  GIT_REPOSITORY https://github.com/HuRuilizhen/ring_buffer.git
-  GIT_TAG        v0.1.0
-)
-# 2) async_logger itself
 FetchContent_Declare(
   async_logger
   GIT_REPOSITORY https://github.com/YourUser/async_logger.git
   GIT_TAG        v0.1.0
 )
 
-FetchContent_MakeAvailable(ring_buffer async_logger)
+FetchContent_MakeAvailable(async_logger)
 
 add_executable(my_app main.cpp)
-target_link_libraries(my_app PRIVATE async_logger)
+target_link_libraries(my_app PRIVATE async_logger::async_logger)
+```
+
+By default, `async_logger` uses `ASYNC_LOGGER_RING_BUFFER_PROVIDER=AUTO`.
+That means it will:
+
+- reuse a `ring_buffer` target already provided by the caller
+- otherwise try `find_package(ring_buffer 0.1.0 CONFIG)`
+- otherwise fall back to `FetchContent`
+
+If you want stricter behavior, set the provider before
+`FetchContent_MakeAvailable(async_logger)`:
+
+```cmake
+set(ASYNC_LOGGER_RING_BUFFER_PROVIDER PACKAGE CACHE STRING "" FORCE)
+```
+
+or
+
+```cmake
+set(ASYNC_LOGGER_RING_BUFFER_PROVIDER FETCH CACHE STRING "" FORCE)
 ```
 
 or after installation:
@@ -214,7 +243,7 @@ int main() {
 If you installed via CMake:
 
 ```bash
-sudo cmake --build build --target uninstall_async_logger
+sudo cmake --build build/release --target uninstall_async_logger
 ```
 
 ## Contributing
