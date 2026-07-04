@@ -17,7 +17,7 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 ## Requirements
 
 - C++20-compatible compiler  
-- CMake >= 3.15  
+- CMake >= 3.20  
 - Network access for dependency fetching in development mode, or a local
   [`ring_buffer`](https://github.com/HuRuilizhen/ring_buffer) installation when using the
   `PACKAGE` provider
