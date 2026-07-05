@@ -11,12 +11,12 @@
 #define LOG_FATAL(msg) AsyncLogger::Logger::fatal(msg)
 
 #define LOGF_DEBUG(fmt, ...) \
-  AsyncLogger::Logger::debug(std::format(fmt, __VA_ARGS__))
+  AsyncLogger::Logger::debug(std::format(fmt __VA_OPT__(, ) __VA_ARGS__))
 #define LOGF_INFO(fmt, ...) \
-  AsyncLogger::Logger::info(std::format(fmt, __VA_ARGS__))
+  AsyncLogger::Logger::info(std::format(fmt __VA_OPT__(, ) __VA_ARGS__))
 #define LOGF_WARN(fmt, ...) \
-  AsyncLogger::Logger::warn(std::format(fmt, __VA_ARGS__))
+  AsyncLogger::Logger::warn(std::format(fmt __VA_OPT__(, ) __VA_ARGS__))
 #define LOGF_ERROR(fmt, ...) \
-  AsyncLogger::Logger::error(std::format(fmt, __VA_ARGS__))
+  AsyncLogger::Logger::error(std::format(fmt __VA_OPT__(, ) __VA_ARGS__))
 #define LOGF_FATAL(fmt, ...) \
-  AsyncLogger::Logger::fatal(std::format(fmt, __VA_ARGS__))
+  AsyncLogger::Logger::fatal(std::format(fmt __VA_OPT__(, ) __VA_ARGS__))

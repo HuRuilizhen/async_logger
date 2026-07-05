@@ -1,10 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <ctime>
+#include <fstream>
 #include <string>
 #include <thread>
 
 #include "async_logger/async_logger.h"
+#include "async_logger/async_logger_macro.h"
 
 namespace {
 static const std::string TMPLOG = "test.log";
@@ -100,4 +102,19 @@ TEST(AsyncLogger, LogFileRotation) {
   content = readFile(filename);
   EXPECT_NE(content.find("beta"), std::string::npos);
   std::remove(filename.c_str());
+}
+
+TEST(AsyncLogger, FormattedMacroSupportsLiteralOnly) {
+  AsyncLogger::Config config;
+  config.level = AsyncLogger::Level::Info;
+  config.flag = AsyncLogger::OutstreamFlag::out_file;
+  config.filename = TMPLOG;
+
+  AsyncLogger::Logger::init(config);
+  LOGF_INFO("literal only");
+  AsyncLogger::Logger::shutdown();
+
+  std::string content = readFile(TMPLOG);
+  EXPECT_NE(content.find("literal only"), std::string::npos);
+  std::remove(TMPLOG.c_str());
 }
