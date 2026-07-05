@@ -95,12 +95,16 @@ if(ENABLE_TESTS)
   enable_testing()
 
   add_executable(async_logger_basic_test tests/async_logger_basic_test.cc)
+  add_executable(async_logger_error_test tests/async_logger_error_test.cc)
   add_executable(async_logger_file_test tests/async_logger_file_test.cc)
   target_link_libraries(async_logger_basic_test PRIVATE async_logger
+                                                        GTest::gtest_main)
+  target_link_libraries(async_logger_error_test PRIVATE async_logger
                                                         GTest::gtest_main)
   target_link_libraries(async_logger_file_test PRIVATE async_logger
                                                        GTest::gtest_main)
   add_test(NAME async_logger_basic_test COMMAND async_logger_basic_test)
+  add_test(NAME async_logger_error_test COMMAND async_logger_error_test)
   add_test(NAME async_logger_file_test COMMAND async_logger_file_test)
 endif(ENABLE_TESTS)
 

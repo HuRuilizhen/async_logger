@@ -6,6 +6,7 @@
 #include <fstream>
 #include <mutex>
 #include <source_location>
+#include <stdexcept>
 #include <string>
 #include <thread>
 
@@ -34,6 +35,11 @@ struct Entry {
   Level lvl = Level::Info;
   std::source_location loc;
   std::string msg;
+};
+
+class FileOpenError : public std::runtime_error {
+ public:
+  explicit FileOpenError(const std::string& filename);
 };
 
 class Logger {
