@@ -231,9 +231,9 @@ std::string Logger::format(const Entry& entry, bool colored) {
   std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &tm);
 
   std::ostringstream oss;
-  if (flag_ & colored) oss << LoggerUtils::getLevelColor(entry.lvl);
+  if (colored) oss << LoggerUtils::getLevelColor(entry.lvl);
   oss << "[" << LoggerUtils::getLevelString(entry.lvl) << "]";
-  if (flag_ & colored) oss << AnsiColor::RESET;
+  if (colored) oss << AnsiColor::RESET;
   oss << " [" << time_buf << "] ";
   oss << "[" << LoggerUtils::getFilenameInPath(entry.loc.file_name()) << ":"
       << entry.loc.line() << "] ";

@@ -118,3 +118,20 @@ TEST(AsyncLogger, FormattedMacroSupportsLiteralOnly) {
   EXPECT_NE(content.find("literal only"), std::string::npos);
   std::remove(TMPLOG.c_str());
 }
+
+TEST(AsyncLogger, FileOutputNeverContainsAnsiColorCodes) {
+  AsyncLogger::Config config;
+  config.level = AsyncLogger::Level::Info;
+  config.flag = AsyncLogger::OutstreamFlag::out_file |
+                AsyncLogger::OutstreamFlag::out_color;
+  config.filename = TMPLOG;
+
+  AsyncLogger::Logger::init(config);
+  AsyncLogger::Logger::error("plain file output");
+  AsyncLogger::Logger::shutdown();
+
+  std::string content = readFile(TMPLOG);
+  EXPECT_NE(content.find("plain file output"), std::string::npos);
+  EXPECT_EQ(content.find("\033["), std::string::npos);
+  std::remove(TMPLOG.c_str());
+}
