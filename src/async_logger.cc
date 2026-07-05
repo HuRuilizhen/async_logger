@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <ctime>
 #include <fstream>
 #include <iostream>
@@ -132,6 +133,8 @@ constexpr std::string_view LoggerUtils::getFilenameInPath(
 void Logger::loadConfig(const Config& config) {
   level_.store(config.level, std::memory_order_relaxed);
   flag_ = config.flag;
+  wait_strategy_ = config.wait_strategy;
+  need_rotation_ = false;
 
   if (config.flag & OutstreamFlag::out_file) {
     file_mode_ = std::ios::out;
@@ -158,6 +161,10 @@ void Logger::init(const Config& config) {
   std::lock_guard<std::mutex> lock(lg.init_mutex_);
   if (lg.has_init_.load(std::memory_order_relaxed)) return;
 
+  {
+    std::lock_guard<std::mutex> work_lock(lg.work_ready_mutex_);
+    lg.queued_entries_ = 0;
+  }
   lg.loadConfig(config);
 
   lg.running_ = true;
@@ -181,6 +188,7 @@ void Logger::ensureInit() {
 void Logger::shutdown() {
   auto& lg = instance();
   lg.running_ = false;
+  lg.work_ready_cv_.notify_all();
   if (lg.worker_.joinable()) lg.worker_.join();
   if (lg.ofstream_.is_open()) {
     lg.ofstream_.flush();
@@ -228,13 +236,14 @@ Logger::~Logger() {
 void Logger::enqueue(Level lvl, const std::source_location& loc,
                      const std::string& msg) {
   if (lvl < level_.load(std::memory_order_relaxed)) return;
-  buffer_.tryPush({lvl, loc, msg});
+  if (buffer_.tryPush({lvl, LoggerUtils::timeFuncPtr(), loc, msg}))
+    notifyWorkerForEnqueuedEntry();
 }
 
 std::string Logger::format(const Entry& entry, bool colored) {
-  std::tm tm = LoggerUtils::timeFuncPtr();
   char time_buf[20];
-  std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &tm);
+  std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S",
+                &entry.timestamp);
 
   std::ostringstream oss;
   if (colored) oss << LoggerUtils::getLevelColor(entry.lvl);
@@ -258,16 +267,52 @@ void Logger::log(const Entry& entry) {
   }
 }
 
+void Logger::notifyWorkerForEnqueuedEntry() {
+  if (wait_strategy_ != WaitStrategy::Blocking) return;
+
+  {
+    std::lock_guard<std::mutex> lock(work_ready_mutex_);
+    ++queued_entries_;
+  }
+  work_ready_cv_.notify_one();
+}
+
+void Logger::markEntryDequeued() {
+  if (wait_strategy_ != WaitStrategy::Blocking) return;
+
+  std::lock_guard<std::mutex> lock(work_ready_mutex_);
+  if (queued_entries_ > 0) --queued_entries_;
+}
+
+void Logger::waitForWork() {
+  std::unique_lock<std::mutex> lock(work_ready_mutex_);
+  work_ready_cv_.wait(lock, [this]() {
+    return !running_.load(std::memory_order_acquire) || queued_entries_ > 0;
+  });
+}
+
 void Logger::workerLoop() {
   Entry entry;
   while (running_) {
-    if (buffer_.tryPop(entry)) {
+    bool drained_entry = false;
+    while (buffer_.tryPop(entry)) {
+      markEntryDequeued();
       Logger::log(entry);
-    } else {
-      std::this_thread::yield();
+      drained_entry = true;
     }
+
+    if (!running_) break;
+    if (drained_entry) continue;
+
+    if (wait_strategy_ == WaitStrategy::Blocking)
+      waitForWork();
+    else
+      std::this_thread::yield();
   }
-  while (buffer_.tryPop(entry)) Logger::log(entry);
+  while (buffer_.tryPop(entry)) {
+    markEntryDequeued();
+    Logger::log(entry);
+  }
 }
 
 }  // namespace AsyncLogger

@@ -3,6 +3,8 @@
 #include <ring_buffer/mpsc_ring_buffer.h>
 
 #include <atomic>
+#include <condition_variable>
+#include <ctime>
 #include <fstream>
 #include <mutex>
 #include <source_location>
@@ -14,6 +16,8 @@ namespace AsyncLogger {
 
 // Supported log levels
 enum class Level { Debug, Info, Warn, Error, Fatal };
+
+enum class WaitStrategy { Blocking, Yielding };
 
 // Supported ostream control flag
 enum OutstreamFlag {
@@ -29,10 +33,12 @@ struct Config {
   int flag = OutstreamFlag::out_stdout | OutstreamFlag::out_file |
              OutstreamFlag::out_color | OutstreamFlag::mode_append;
   Level level = Level::Info;
+  WaitStrategy wait_strategy = WaitStrategy::Blocking;
 };
 
 struct Entry {
   Level lvl = Level::Info;
+  std::tm timestamp{};
   std::source_location loc;
   std::string msg;
 };
@@ -75,6 +81,9 @@ class Logger {
                const std::string& msg);
   void log(const Entry& entry);
   std::string format(const Entry& entry, bool colored = false);
+  void notifyWorkerForEnqueuedEntry();
+  void markEntryDequeued();
+  void waitForWork();
   static Logger& instance();
 
   // Initialize private method
@@ -90,11 +99,15 @@ class Logger {
   bool need_rotation_{};
   std::tm time_stamp_{};
   std::ofstream ofstream_{};
+  WaitStrategy wait_strategy_{WaitStrategy::Blocking};
 
   // Ring buffer for storing log entries
   RingBuffer::MPSCRingBuffer<Entry> buffer_{1024};
+  size_t queued_entries_{0};
 
   // Thread and state related
+  std::condition_variable work_ready_cv_;
+  std::mutex work_ready_mutex_;
   std::thread worker_;
   std::atomic<bool> running_{false};
 
