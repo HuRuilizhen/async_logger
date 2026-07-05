@@ -97,15 +97,19 @@ if(ENABLE_TESTS)
   add_executable(async_logger_basic_test tests/async_logger_basic_test.cc)
   add_executable(async_logger_error_test tests/async_logger_error_test.cc)
   add_executable(async_logger_file_test tests/async_logger_file_test.cc)
+  add_executable(async_logger_macro_test tests/async_logger_macro_test.cc)
   target_link_libraries(async_logger_basic_test PRIVATE async_logger
                                                         GTest::gtest_main)
   target_link_libraries(async_logger_error_test PRIVATE async_logger
                                                         GTest::gtest_main)
   target_link_libraries(async_logger_file_test PRIVATE async_logger
                                                        GTest::gtest_main)
+  target_link_libraries(async_logger_macro_test PRIVATE async_logger
+                                                        GTest::gtest_main)
   add_test(NAME async_logger_basic_test COMMAND async_logger_basic_test)
   add_test(NAME async_logger_error_test COMMAND async_logger_error_test)
   add_test(NAME async_logger_file_test COMMAND async_logger_file_test)
+  add_test(NAME async_logger_macro_test COMMAND async_logger_macro_test)
 endif(ENABLE_TESTS)
 
 option(ENABLE_EXAMPLE "Enable example" OFF)

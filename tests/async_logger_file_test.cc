@@ -1,23 +1,13 @@
 #include <gtest/gtest.h>
 
 #include <ctime>
-#include <fstream>
 #include <string>
 #include <thread>
 
 #include "async_logger/async_logger.h"
-#include "async_logger/async_logger_macro.h"
+#include "async_logger_test_utils.h"
 
 namespace {
-static const std::string TMPLOG = "test.log";
-
-std::string readFile(const std::string& filename) {
-  std::ifstream ifs(filename);
-  std::string content((std::istreambuf_iterator<char>(ifs)),
-                      std::istreambuf_iterator<char>());
-  return content;
-}
-
 const std::tm newTimeFunc() {
   std::tm time = AsyncLogger::LoggerUtils::getCurrentTime();
   time.tm_mday += 1;
@@ -34,7 +24,7 @@ TEST(AsyncLogger, EmptyFileName) {
   char filename[20];
   std::strftime(filename, sizeof(filename), "%Y-%m-%d.log", &tm);
 
-  std::string content = readFile(filename);
+  std::string content = AsyncLoggerTest::readFile(filename);
   EXPECT_NE(content.find("test"), std::string::npos);
 
   std::remove(filename);
@@ -46,7 +36,7 @@ TEST(AsyncLogger, AppendFileMode) {
   config.level = AsyncLogger::Level::Info;
   config.flag = AsyncLogger::OutstreamFlag::out_file |
                 AsyncLogger::OutstreamFlag::mode_append;
-  config.filename = TMPLOG;
+  config.filename = AsyncLoggerTest::kTempLog;
 
   AsyncLogger::Logger::init(config);
   AsyncLogger::Logger::info("alpha");
@@ -56,19 +46,19 @@ TEST(AsyncLogger, AppendFileMode) {
   AsyncLogger::Logger::info("beta");
   AsyncLogger::Logger::shutdown();
 
-  std::string content = readFile(TMPLOG);
+  std::string content = AsyncLoggerTest::readFile(AsyncLoggerTest::kTempLog);
   EXPECT_NE(content.find("alpha"), std::string::npos);
   EXPECT_NE(content.find("beta"), std::string::npos);
 
-  std::remove(TMPLOG.c_str());
+  std::remove(AsyncLoggerTest::kTempLog.c_str());
 }
 
 TEST(AsyncLogger, TruncFileMode) {
-  // Init with mode append
+  // Init with mode trunc
   AsyncLogger::Config config;
   config.level = AsyncLogger::Level::Info;
   config.flag = AsyncLogger::OutstreamFlag::out_file;
-  config.filename = TMPLOG;
+  config.filename = AsyncLoggerTest::kTempLog;
 
   AsyncLogger::Logger::init(config);
   AsyncLogger::Logger::info("alpha");
@@ -78,11 +68,11 @@ TEST(AsyncLogger, TruncFileMode) {
   AsyncLogger::Logger::info("beta");
   AsyncLogger::Logger::shutdown();
 
-  std::string content = readFile(TMPLOG);
+  std::string content = AsyncLoggerTest::readFile(AsyncLoggerTest::kTempLog);
   EXPECT_EQ(content.find("alpha"), std::string::npos);
   EXPECT_NE(content.find("beta"), std::string::npos);
 
-  std::remove(TMPLOG.c_str());
+  std::remove(AsyncLoggerTest::kTempLog.c_str());
 }
 
 TEST(AsyncLogger, LogFileRotation) {
@@ -90,7 +80,7 @@ TEST(AsyncLogger, LogFileRotation) {
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
   std::string filename = AsyncLogger::LoggerUtils::getDefaultFilename();
-  std::string content = readFile(filename);
+  std::string content = AsyncLoggerTest::readFile(filename);
   EXPECT_NE(content.find("alpha"), std::string::npos);
   std::remove(filename.c_str());
 
@@ -99,24 +89,9 @@ TEST(AsyncLogger, LogFileRotation) {
   AsyncLogger::Logger::shutdown();
 
   filename = AsyncLogger::LoggerUtils::getDefaultFilename();
-  content = readFile(filename);
+  content = AsyncLoggerTest::readFile(filename);
   EXPECT_NE(content.find("beta"), std::string::npos);
   std::remove(filename.c_str());
-}
-
-TEST(AsyncLogger, FormattedMacroSupportsLiteralOnly) {
-  AsyncLogger::Config config;
-  config.level = AsyncLogger::Level::Info;
-  config.flag = AsyncLogger::OutstreamFlag::out_file;
-  config.filename = TMPLOG;
-
-  AsyncLogger::Logger::init(config);
-  LOGF_INFO("literal only");
-  AsyncLogger::Logger::shutdown();
-
-  std::string content = readFile(TMPLOG);
-  EXPECT_NE(content.find("literal only"), std::string::npos);
-  std::remove(TMPLOG.c_str());
 }
 
 TEST(AsyncLogger, FileOutputNeverContainsAnsiColorCodes) {
@@ -124,14 +99,14 @@ TEST(AsyncLogger, FileOutputNeverContainsAnsiColorCodes) {
   config.level = AsyncLogger::Level::Info;
   config.flag = AsyncLogger::OutstreamFlag::out_file |
                 AsyncLogger::OutstreamFlag::out_color;
-  config.filename = TMPLOG;
+  config.filename = AsyncLoggerTest::kTempLog;
 
   AsyncLogger::Logger::init(config);
   AsyncLogger::Logger::error("plain file output");
   AsyncLogger::Logger::shutdown();
 
-  std::string content = readFile(TMPLOG);
+  std::string content = AsyncLoggerTest::readFile(AsyncLoggerTest::kTempLog);
   EXPECT_NE(content.find("plain file output"), std::string::npos);
   EXPECT_EQ(content.find("\033["), std::string::npos);
-  std::remove(TMPLOG.c_str());
+  std::remove(AsyncLoggerTest::kTempLog.c_str());
 }
