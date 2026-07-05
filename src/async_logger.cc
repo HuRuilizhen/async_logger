@@ -9,6 +9,7 @@
 #include <ostream>
 #include <source_location>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -26,6 +27,19 @@ inline constexpr std::string_view BG_RED = "\033[41m";
 }  // namespace AsyncLogger::AnsiColor
 
 namespace AsyncLogger {
+
+namespace {
+
+void openFileOrThrow(std::ofstream& stream, const std::string& filename,
+                     std::ios::openmode mode) {
+  stream.open(filename.c_str(), mode);
+  if (!stream.is_open()) throw FileOpenError(filename);
+}
+
+}  // namespace
+
+FileOpenError::FileOpenError(const std::string& filename)
+    : std::runtime_error("Failed to open file: " + filename) {}
 
 const std::string_view LoggerUtils::getLevelString(Level lvl) {
   switch (lvl) {
@@ -104,11 +118,7 @@ const bool LoggerUtils::tryUpdateFileStream(Logger& lg) {
   if (tryUpdateTimestamp(lg)) {
     lg.ofstream_.flush();
     lg.ofstream_.close();
-    lg.ofstream_.open(getDefaultFilename(), lg.file_mode_);
-    if (!lg.ofstream_.is_open()) {
-      std::cerr << "Failed to open file: " << getDefaultFilename() << std::endl;
-      exit(1);
-    }
+    openFileOrThrow(lg.ofstream_, getDefaultFilename(), lg.file_mode_);
   }
   return false;
 }
@@ -139,11 +149,7 @@ void Logger::loadConfig(const Config& config) {
       filename = config.filename;
     }
 
-    ofstream_.open(filename.c_str(), file_mode_);
-    if (!ofstream_.is_open()) {
-      std::cerr << "Failed to open file: " << filename << std::endl;
-      exit(1);
-    }
+    openFileOrThrow(ofstream_, filename, file_mode_);
   }
 }
 

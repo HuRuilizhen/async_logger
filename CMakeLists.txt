@@ -21,11 +21,12 @@ set(ASYNC_LOGGER_RING_BUFFER_VERSION 0.1.0)
 set(ASYNC_LOGGER_RING_BUFFER_PROVIDER
     "AUTO"
     CACHE STRING "Dependency provider for ring_buffer: FETCH, PACKAGE, or AUTO")
-set_property(
-  CACHE ASYNC_LOGGER_RING_BUFFER_PROVIDER PROPERTY STRINGS FETCH PACKAGE AUTO)
+set_property(CACHE ASYNC_LOGGER_RING_BUFFER_PROVIDER PROPERTY STRINGS FETCH
+                                                              PACKAGE AUTO)
 
 if(TARGET ring_buffer::ring_buffer)
-  message(STATUS "Using caller-provided ring_buffer target: ring_buffer::ring_buffer")
+  message(
+    STATUS "Using caller-provided ring_buffer target: ring_buffer::ring_buffer")
 elseif(TARGET ring_buffer)
   message(STATUS "Using caller-provided ring_buffer target: ring_buffer")
 elseif(ASYNC_LOGGER_RING_BUFFER_PROVIDER STREQUAL "FETCH")
@@ -46,7 +47,8 @@ elseif(ASYNC_LOGGER_RING_BUFFER_PROVIDER STREQUAL "AUTO")
   if(ring_buffer_FOUND)
     message(STATUS "Found local ring_buffer: using ring_buffer::ring_buffer")
   else()
-    message(STATUS "ring_buffer package not found; falling back to FetchContent")
+    message(
+      STATUS "ring_buffer package not found; falling back to FetchContent")
 
     include(FetchContent)
     FetchContent_Declare(
@@ -67,7 +69,8 @@ if(TARGET ring_buffer::ring_buffer)
 elseif(TARGET ring_buffer)
   set(ASYNC_LOGGER_RING_BUFFER_TARGET ring_buffer)
 else()
-  message(FATAL_ERROR "ring_buffer target not found after dependency resolution")
+  message(
+    FATAL_ERROR "ring_buffer target not found after dependency resolution")
 endif()
 
 add_library(async_logger STATIC src/async_logger.cc)
@@ -95,13 +98,21 @@ if(ENABLE_TESTS)
   enable_testing()
 
   add_executable(async_logger_basic_test tests/async_logger_basic_test.cc)
+  add_executable(async_logger_error_test tests/async_logger_error_test.cc)
   add_executable(async_logger_file_test tests/async_logger_file_test.cc)
+  add_executable(async_logger_macro_test tests/async_logger_macro_test.cc)
   target_link_libraries(async_logger_basic_test PRIVATE async_logger
+                                                        GTest::gtest_main)
+  target_link_libraries(async_logger_error_test PRIVATE async_logger
                                                         GTest::gtest_main)
   target_link_libraries(async_logger_file_test PRIVATE async_logger
                                                        GTest::gtest_main)
+  target_link_libraries(async_logger_macro_test PRIVATE async_logger
+                                                        GTest::gtest_main)
   add_test(NAME async_logger_basic_test COMMAND async_logger_basic_test)
+  add_test(NAME async_logger_error_test COMMAND async_logger_error_test)
   add_test(NAME async_logger_file_test COMMAND async_logger_file_test)
+  add_test(NAME async_logger_macro_test COMMAND async_logger_macro_test)
 endif(ENABLE_TESTS)
 
 option(ENABLE_EXAMPLE "Enable example" OFF)
@@ -111,10 +122,9 @@ if(ENABLE_EXAMPLE)
   add_executable(async_logger_example examples/async_logger_example.cc)
   add_executable(async_logger_macro_example
                  examples/async_logger_macro_example.cc)
-  target_compile_options(
-    async_logger_example PRIVATE $<$<CONFIG:Debug>:-O0 -g>)
-  target_compile_options(
-    async_logger_macro_example PRIVATE $<$<CONFIG:Debug>:-O0 -g>)
+  target_compile_options(async_logger_example PRIVATE $<$<CONFIG:Debug>:-O0 -g>)
+  target_compile_options(async_logger_macro_example
+                         PRIVATE $<$<CONFIG:Debug>:-O0 -g>)
   target_link_libraries(async_logger_example PRIVATE async_logger)
   target_link_libraries(async_logger_macro_example PRIVATE async_logger)
 endif(ENABLE_EXAMPLE)
