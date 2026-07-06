@@ -6,6 +6,23 @@
 #include "async_logger/async_logger.h"
 #include "async_logger_test_utils.h"
 
+namespace {
+
+void emitBurstLogs(int thread_count, int messages_per_thread) {
+  std::vector<std::thread> threads;
+  threads.reserve(thread_count);
+  for (int i = 0; i < thread_count; ++i) {
+    threads.emplace_back([messages_per_thread]() {
+      for (int j = 0; j < messages_per_thread; ++j) {
+        AsyncLogger::Logger::info("dropped message");
+      }
+    });
+  }
+  for (auto& th : threads) th.join();
+}
+
+}  // namespace
+
 TEST(AsyncLogger, LevelFiltering) {
   // Init with level WARN, debug/info should be filtered out
   AsyncLogger::Config config;
@@ -78,15 +95,7 @@ TEST(AsyncLogger, DroppedCountStartsAtZeroAndCanBeReset) {
   AsyncLogger::Logger::init(config);
   EXPECT_EQ(AsyncLogger::Logger::droppedCount(), 0u);
 
-  std::vector<std::thread> threads;
-  for (int i = 0; i < 8; ++i) {
-    threads.emplace_back([]() {
-      for (int j = 0; j < 256; ++j) {
-        AsyncLogger::Logger::info("dropped message");
-      }
-    });
-  }
-  for (auto& th : threads) th.join();
+  emitBurstLogs(32, 4096);
   AsyncLogger::Logger::shutdown();
 
   EXPECT_GT(AsyncLogger::Logger::droppedCount(), 0u);
@@ -104,15 +113,7 @@ TEST(AsyncLogger, DroppedCountResetsOnReinit) {
   config.filename = AsyncLoggerTest::kTempLog;
 
   AsyncLogger::Logger::init(config);
-  std::vector<std::thread> threads;
-  for (int i = 0; i < 8; ++i) {
-    threads.emplace_back([]() {
-      for (int j = 0; j < 256; ++j) {
-        AsyncLogger::Logger::info("dropped message");
-      }
-    });
-  }
-  for (auto& th : threads) th.join();
+  emitBurstLogs(32, 4096);
   AsyncLogger::Logger::shutdown();
   ASSERT_GT(AsyncLogger::Logger::droppedCount(), 0u);
 
