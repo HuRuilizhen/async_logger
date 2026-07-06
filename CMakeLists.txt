@@ -17,8 +17,33 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-option(ENABLE_TESTS "Enable tests" OFF)
-option(ENABLE_EXAMPLE "Enable example" OFF)
+set(ASYNC_LOGGER_TOP_LEVEL OFF)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(ASYNC_LOGGER_TOP_LEVEL ON)
+endif()
+
+option(ASYNC_LOGGER_BUILD_TESTS "Build async_logger tests" OFF)
+option(ASYNC_LOGGER_BUILD_EXAMPLES "Build async_logger examples" OFF)
+
+if(ASYNC_LOGGER_TOP_LEVEL)
+  if(DEFINED ENABLE_TESTS)
+    message(
+      DEPRECATION
+        "ENABLE_TESTS is deprecated; use ASYNC_LOGGER_BUILD_TESTS instead.")
+    set(ASYNC_LOGGER_BUILD_TESTS
+        "${ENABLE_TESTS}"
+        CACHE BOOL "Build async_logger tests" FORCE)
+  endif()
+
+  if(DEFINED ENABLE_EXAMPLE)
+    message(
+      DEPRECATION
+        "ENABLE_EXAMPLE is deprecated; use ASYNC_LOGGER_BUILD_EXAMPLES instead.")
+    set(ASYNC_LOGGER_BUILD_EXAMPLES
+        "${ENABLE_EXAMPLE}"
+        CACHE BOOL "Build async_logger examples" FORCE)
+  endif()
+endif()
 
 set(ASYNC_LOGGER_RING_BUFFER_VERSION 0.1.1)
 set(ASYNC_LOGGER_RING_BUFFER_PROVIDER
@@ -83,7 +108,7 @@ target_include_directories(
                       $<INSTALL_INTERFACE:include>)
 target_link_libraries(async_logger PUBLIC ${ASYNC_LOGGER_RING_BUFFER_TARGET})
 
-if(ENABLE_TESTS)
+if(ASYNC_LOGGER_BUILD_TESTS)
   message(STATUS "Tests enabled")
 
   include(FetchContent)
@@ -117,9 +142,9 @@ if(ENABLE_TESTS)
   add_test(NAME async_logger_error_test COMMAND async_logger_error_test)
   add_test(NAME async_logger_file_test COMMAND async_logger_file_test)
   add_test(NAME async_logger_macro_test COMMAND async_logger_macro_test)
-endif(ENABLE_TESTS)
+endif()
 
-if(ENABLE_EXAMPLE)
+if(ASYNC_LOGGER_BUILD_EXAMPLES)
   message(STATUS "Example enabled")
   add_executable(async_logger_example examples/async_logger_example.cc)
   add_executable(async_logger_macro_example
@@ -129,7 +154,7 @@ if(ENABLE_EXAMPLE)
                          PRIVATE $<$<CONFIG:Debug>:-O0 -g>)
   target_link_libraries(async_logger_example PRIVATE async_logger)
   target_link_libraries(async_logger_macro_example PRIVATE async_logger)
-endif(ENABLE_EXAMPLE)
+endif()
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)

@@ -21,9 +21,10 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 
 - C++20-compatible compiler  
 - CMake >= 3.20  
-- Network access for dependency fetching in development mode, or a local
-  [`ring_buffer`](https://github.com/HuRuilizhen/ring_buffer) installation when using the
-  `PACKAGE` provider
+- Network access when using the `FETCH` provider, or when the `AUTO` provider
+  falls back to `FetchContent`
+- A local [`ring_buffer`](https://github.com/HuRuilizhen/ring_buffer)
+  installation when using the `PACKAGE` provider
 - (Optional) GoogleTest for unit tests
 
 ## Table of Contents
@@ -53,8 +54,8 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 
 | Option                               | Default | Description                                                    |
 | ------------------------------------ | ------- | -------------------------------------------------------------- |
-| `ENABLE_TESTS`                       | OFF     | Build unit tests                                               |
-| `ENABLE_EXAMPLE`                     | OFF     | Build examples                                                 |
+| `ASYNC_LOGGER_BUILD_TESTS`           | OFF     | Build unit tests                                               |
+| `ASYNC_LOGGER_BUILD_EXAMPLES`        | OFF     | Build examples                                                 |
 | `CMAKE_EXPORT_COMPILE_COMMANDS`      | OFF     | Generate `compile_commands.json` for IDEs                      |
 | `ASYNC_LOGGER_RING_BUFFER_PROVIDER`  | `AUTO`  | Resolve `ring_buffer` via `FETCH`, `PACKAGE`, or `AUTO`        |
 
@@ -81,6 +82,11 @@ cmake -S . -B build/package \
 cmake -S . -B build/auto \
   -DASYNC_LOGGER_RING_BUFFER_PROVIDER=AUTO \
   -DCMAKE_BUILD_TYPE=Debug
+
+# Top-level compatibility aliases still work, but are deprecated
+cmake -S . -B build/compat \
+  -DENABLE_TESTS=ON \
+  -DENABLE_EXAMPLE=ON
 
 # Install from a configured build tree
 sudo cmake --install build/release
