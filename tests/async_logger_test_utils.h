@@ -33,3 +33,20 @@ class TimeFuncGuard {
 };
 
 }  // namespace AsyncLoggerTest
+
+namespace AsyncLogger {
+
+class LoggerTestPeer {
+ public:
+  static void setBufferCapacity(size_t capacity) {
+    auto& logger = Logger::instance();
+    logger.buffer_capacity_ = capacity;
+  }
+
+  static void resetBufferCapacity() {
+    auto& logger = Logger::instance();
+    logger.buffer_capacity_ = Logger::kDefaultQueueCapacity;
+  }
+};
+
+}  // namespace AsyncLogger
