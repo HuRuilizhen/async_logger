@@ -161,10 +161,7 @@ void Logger::init(const Config& config) {
   std::lock_guard<std::mutex> lock(lg.init_mutex_);
   if (lg.has_init_.load(std::memory_order_relaxed)) return;
 
-  {
-    std::lock_guard<std::mutex> work_lock(lg.work_ready_mutex_);
-    lg.queued_entries_ = 0;
-  }
+  lg.resetRuntimeState();
   lg.loadConfig(config);
 
   lg.running_ = true;
@@ -179,6 +176,7 @@ void Logger::ensureInit() {
   // slow path
   std::lock_guard<std::mutex> lock(init_mutex_);
   if (has_init_.load(std::memory_order_acquire)) return;
+  resetRuntimeState();
   loadConfig(Config());
   running_ = true;
   worker_ = std::thread(&Logger::workerLoop, this);
@@ -196,6 +194,14 @@ void Logger::shutdown() {
   }
   std::lock_guard<std::mutex> lock(lg.init_mutex_);
   lg.has_init_.store(false, std::memory_order_release);
+}
+
+size_t Logger::droppedCount() {
+  return instance().dropped_count_.load(std::memory_order_relaxed);
+}
+
+void Logger::resetStats() {
+  instance().dropped_count_.store(0, std::memory_order_relaxed);
 }
 
 void Logger::debug(const std::string& msg, const std::source_location& loc) {
@@ -236,8 +242,11 @@ Logger::~Logger() {
 void Logger::enqueue(Level lvl, const std::source_location& loc,
                      const std::string& msg) {
   if (lvl < level_.load(std::memory_order_relaxed)) return;
-  if (buffer_.tryPush({lvl, LoggerUtils::timeFuncPtr(), loc, msg}))
+  if (buffer_.tryPush({lvl, LoggerUtils::timeFuncPtr(), loc, msg})) {
     notifyWorkerForEnqueuedEntry();
+  } else {
+    dropped_count_.fetch_add(1, std::memory_order_relaxed);
+  }
 }
 
 std::string Logger::format(const Entry& entry, bool colored) {
@@ -289,6 +298,14 @@ void Logger::waitForWork() {
   work_ready_cv_.wait(lock, [this]() {
     return !running_.load(std::memory_order_acquire) || queued_entries_ > 0;
   });
+}
+
+void Logger::resetRuntimeState() {
+  {
+    std::lock_guard<std::mutex> work_lock(work_ready_mutex_);
+    queued_entries_ = 0;
+  }
+  dropped_count_.store(0, std::memory_order_relaxed);
 }
 
 void Logger::workerLoop() {

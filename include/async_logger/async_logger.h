@@ -54,6 +54,8 @@ class Logger {
   static void init(const Config& config = Config());
   // Shutdown logger: stops worker and flushes remaining logs
   static void shutdown();
+  static size_t droppedCount();
+  static void resetStats();
 
   // Logging API
   static void debug(
@@ -84,6 +86,7 @@ class Logger {
   void notifyWorkerForEnqueuedEntry();
   void markEntryDequeued();
   void waitForWork();
+  void resetRuntimeState();
   static Logger& instance();
 
   // Initialize private method
@@ -104,6 +107,7 @@ class Logger {
   // Ring buffer for storing log entries
   RingBuffer::MPSCRingBuffer<Entry> buffer_{1024};
   size_t queued_entries_{0};
+  std::atomic<size_t> dropped_count_{0};
 
   // Thread and state related
   std::condition_variable work_ready_cv_;
