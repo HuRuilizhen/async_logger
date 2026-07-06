@@ -51,3 +51,19 @@ TEST(AsyncLogger, ThreadSafety) {
   }
   std::remove(AsyncLoggerTest::kTempLog.c_str());
 }
+
+TEST(AsyncLogger, YieldingWaitStrategyStillLogsMessages) {
+  AsyncLogger::Config config;
+  config.level = AsyncLogger::Level::Info;
+  config.flag = AsyncLogger::OutstreamFlag::out_file;
+  config.filename = AsyncLoggerTest::kTempLog;
+  config.wait_strategy = AsyncLogger::WaitStrategy::Yielding;
+
+  AsyncLogger::Logger::init(config);
+  AsyncLogger::Logger::info("yielding strategy");
+  AsyncLogger::Logger::shutdown();
+
+  std::string content = AsyncLoggerTest::readFile(AsyncLoggerTest::kTempLog);
+  EXPECT_NE(content.find("yielding strategy"), std::string::npos);
+  std::remove(AsyncLoggerTest::kTempLog.c_str());
+}
