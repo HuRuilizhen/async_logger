@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <ctime>
 #include <fstream>
+#include <memory>
 #include <mutex>
 #include <source_location>
 #include <stdexcept>
@@ -73,7 +74,7 @@ class Logger {
       const std::source_location& loc = std::source_location::current());
 
  private:
-  Logger() = default;
+  Logger();
   ~Logger();
   Logger(const Logger&) = delete;
   Logger& operator=(const Logger&) = delete;
@@ -105,14 +106,15 @@ class Logger {
   WaitStrategy wait_strategy_{WaitStrategy::Blocking};
 
   // Ring buffer for storing log entries
-  RingBuffer::MPSCRingBuffer<Entry> buffer_{1024};
+  static constexpr size_t kDefaultQueueCapacity = 1024;
+  size_t buffer_capacity_{kDefaultQueueCapacity};
+  std::unique_ptr<RingBuffer::MPSCRingBuffer<Entry>> buffer_;
   size_t queued_entries_{0};
   std::atomic<size_t> dropped_count_{0};
 
   // Thread and state related
   std::condition_variable work_ready_cv_;
   std::mutex work_ready_mutex_;
-  bool worker_waiting_{false};
   std::thread worker_;
   std::atomic<bool> running_{false};
 

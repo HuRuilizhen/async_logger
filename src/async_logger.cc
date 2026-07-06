@@ -42,6 +42,10 @@ void openFileOrThrow(std::ofstream& stream, const std::string& filename,
 FileOpenError::FileOpenError(const std::string& filename)
     : std::runtime_error("Failed to open file: " + filename) {}
 
+Logger::Logger()
+    : buffer_(std::make_unique<RingBuffer::MPSCRingBuffer<Entry>>(
+          kDefaultQueueCapacity)) {}
+
 const std::string_view LoggerUtils::getLevelString(Level lvl) {
   switch (lvl) {
     case Level::Debug:
@@ -242,7 +246,7 @@ Logger::~Logger() {
 void Logger::enqueue(Level lvl, const std::source_location& loc,
                      const std::string& msg) {
   if (lvl < level_.load(std::memory_order_relaxed)) return;
-  if (buffer_.tryPush({lvl, LoggerUtils::timeFuncPtr(), loc, msg})) {
+  if (buffer_->tryPush({lvl, LoggerUtils::timeFuncPtr(), loc, msg})) {
     notifyWorkerForEnqueuedEntry();
   } else {
     dropped_count_.fetch_add(1, std::memory_order_relaxed);
@@ -295,18 +299,17 @@ void Logger::markEntryDequeued() {
 
 void Logger::waitForWork() {
   std::unique_lock<std::mutex> lock(work_ready_mutex_);
-  worker_waiting_ = true;
   work_ready_cv_.wait(lock, [this]() {
     return !running_.load(std::memory_order_acquire) || queued_entries_ > 0;
   });
-  worker_waiting_ = false;
 }
 
 void Logger::resetRuntimeState() {
+  buffer_ =
+      std::make_unique<RingBuffer::MPSCRingBuffer<Entry>>(buffer_capacity_);
   {
     std::lock_guard<std::mutex> work_lock(work_ready_mutex_);
     queued_entries_ = 0;
-    worker_waiting_ = false;
   }
   dropped_count_.store(0, std::memory_order_relaxed);
 }
@@ -315,7 +318,7 @@ void Logger::workerLoop() {
   Entry entry;
   while (running_) {
     bool drained_entry = false;
-    while (buffer_.tryPop(entry)) {
+    while (buffer_->tryPop(entry)) {
       markEntryDequeued();
       Logger::log(entry);
       drained_entry = true;
@@ -329,7 +332,7 @@ void Logger::workerLoop() {
     else
       std::this_thread::yield();
   }
-  while (buffer_.tryPop(entry)) {
+  while (buffer_->tryPop(entry)) {
     markEntryDequeued();
     Logger::log(entry);
   }

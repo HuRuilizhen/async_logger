@@ -1,11 +1,9 @@
 #pragma once
 
-#include <chrono>
 #include <ctime>
 #include <fstream>
 #include <iterator>
 #include <string>
-#include <thread>
 
 #include "async_logger/async_logger.h"
 
@@ -40,24 +38,14 @@ namespace AsyncLogger {
 
 class LoggerTestPeer {
  public:
-  static bool waitUntilWorkerIsWaiting() {
+  static void setBufferCapacity(size_t capacity) {
     auto& logger = Logger::instance();
-    for (int i = 0; i < 1000; ++i) {
-      {
-        std::lock_guard<std::mutex> lock(logger.work_ready_mutex_);
-        if (logger.worker_waiting_) return true;
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    return false;
+    logger.buffer_capacity_ = capacity;
   }
 
-  static void fillBufferToCapacity() {
+  static void resetBufferCapacity() {
     auto& logger = Logger::instance();
-    Entry entry{Level::Info, LoggerUtils::getCurrentTime(),
-                std::source_location::current(), "prefill"};
-    while (logger.buffer_.tryPush(entry)) {
-    }
+    logger.buffer_capacity_ = Logger::kDefaultQueueCapacity;
   }
 };
 

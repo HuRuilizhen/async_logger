@@ -69,6 +69,7 @@ TEST(AsyncLogger, YieldingWaitStrategyStillLogsMessages) {
 }
 
 TEST(AsyncLogger, DroppedCountStartsAtZeroAndCanBeReset) {
+  AsyncLogger::LoggerTestPeer::setBufferCapacity(1);
   AsyncLogger::Config config;
   config.level = AsyncLogger::Level::Info;
   config.flag = AsyncLogger::OutstreamFlag::out_file;
@@ -77,32 +78,47 @@ TEST(AsyncLogger, DroppedCountStartsAtZeroAndCanBeReset) {
   AsyncLogger::Logger::init(config);
   EXPECT_EQ(AsyncLogger::Logger::droppedCount(), 0u);
 
-  ASSERT_TRUE(AsyncLogger::LoggerTestPeer::waitUntilWorkerIsWaiting());
-  AsyncLogger::LoggerTestPeer::fillBufferToCapacity();
-  AsyncLogger::Logger::info("dropped message");
+  std::vector<std::thread> threads;
+  for (int i = 0; i < 8; ++i) {
+    threads.emplace_back([]() {
+      for (int j = 0; j < 256; ++j) {
+        AsyncLogger::Logger::info("dropped message");
+      }
+    });
+  }
+  for (auto& th : threads) th.join();
   AsyncLogger::Logger::shutdown();
 
   EXPECT_GT(AsyncLogger::Logger::droppedCount(), 0u);
   AsyncLogger::Logger::resetStats();
   EXPECT_EQ(AsyncLogger::Logger::droppedCount(), 0u);
+  AsyncLogger::LoggerTestPeer::resetBufferCapacity();
   std::remove(AsyncLoggerTest::kTempLog.c_str());
 }
 
 TEST(AsyncLogger, DroppedCountResetsOnReinit) {
+  AsyncLogger::LoggerTestPeer::setBufferCapacity(1);
   AsyncLogger::Config config;
   config.level = AsyncLogger::Level::Info;
   config.flag = AsyncLogger::OutstreamFlag::out_file;
   config.filename = AsyncLoggerTest::kTempLog;
 
   AsyncLogger::Logger::init(config);
-  ASSERT_TRUE(AsyncLogger::LoggerTestPeer::waitUntilWorkerIsWaiting());
-  AsyncLogger::LoggerTestPeer::fillBufferToCapacity();
-  AsyncLogger::Logger::info("dropped message");
+  std::vector<std::thread> threads;
+  for (int i = 0; i < 8; ++i) {
+    threads.emplace_back([]() {
+      for (int j = 0; j < 256; ++j) {
+        AsyncLogger::Logger::info("dropped message");
+      }
+    });
+  }
+  for (auto& th : threads) th.join();
   AsyncLogger::Logger::shutdown();
   ASSERT_GT(AsyncLogger::Logger::droppedCount(), 0u);
 
   AsyncLogger::Logger::init(config);
   EXPECT_EQ(AsyncLogger::Logger::droppedCount(), 0u);
   AsyncLogger::Logger::shutdown();
+  AsyncLogger::LoggerTestPeer::resetBufferCapacity();
   std::remove(AsyncLoggerTest::kTempLog.c_str());
 }
