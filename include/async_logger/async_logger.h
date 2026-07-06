@@ -112,11 +112,13 @@ class Logger {
   // Thread and state related
   std::condition_variable work_ready_cv_;
   std::mutex work_ready_mutex_;
+  bool worker_waiting_{false};
   std::thread worker_;
   std::atomic<bool> running_{false};
 
   // Friend utils class
   friend class LoggerUtils;
+  friend class LoggerTestPeer;
 };
 
 class LoggerUtils {

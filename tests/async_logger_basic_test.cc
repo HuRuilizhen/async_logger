@@ -67,3 +67,42 @@ TEST(AsyncLogger, YieldingWaitStrategyStillLogsMessages) {
   EXPECT_NE(content.find("yielding strategy"), std::string::npos);
   std::remove(AsyncLoggerTest::kTempLog.c_str());
 }
+
+TEST(AsyncLogger, DroppedCountStartsAtZeroAndCanBeReset) {
+  AsyncLogger::Config config;
+  config.level = AsyncLogger::Level::Info;
+  config.flag = AsyncLogger::OutstreamFlag::out_file;
+  config.filename = AsyncLoggerTest::kTempLog;
+
+  AsyncLogger::Logger::init(config);
+  EXPECT_EQ(AsyncLogger::Logger::droppedCount(), 0u);
+
+  ASSERT_TRUE(AsyncLogger::LoggerTestPeer::waitUntilWorkerIsWaiting());
+  AsyncLogger::LoggerTestPeer::fillBufferToCapacity();
+  AsyncLogger::Logger::info("dropped message");
+  AsyncLogger::Logger::shutdown();
+
+  EXPECT_GT(AsyncLogger::Logger::droppedCount(), 0u);
+  AsyncLogger::Logger::resetStats();
+  EXPECT_EQ(AsyncLogger::Logger::droppedCount(), 0u);
+  std::remove(AsyncLoggerTest::kTempLog.c_str());
+}
+
+TEST(AsyncLogger, DroppedCountResetsOnReinit) {
+  AsyncLogger::Config config;
+  config.level = AsyncLogger::Level::Info;
+  config.flag = AsyncLogger::OutstreamFlag::out_file;
+  config.filename = AsyncLoggerTest::kTempLog;
+
+  AsyncLogger::Logger::init(config);
+  ASSERT_TRUE(AsyncLogger::LoggerTestPeer::waitUntilWorkerIsWaiting());
+  AsyncLogger::LoggerTestPeer::fillBufferToCapacity();
+  AsyncLogger::Logger::info("dropped message");
+  AsyncLogger::Logger::shutdown();
+  ASSERT_GT(AsyncLogger::Logger::droppedCount(), 0u);
+
+  AsyncLogger::Logger::init(config);
+  EXPECT_EQ(AsyncLogger::Logger::droppedCount(), 0u);
+  AsyncLogger::Logger::shutdown();
+  std::remove(AsyncLoggerTest::kTempLog.c_str());
+}

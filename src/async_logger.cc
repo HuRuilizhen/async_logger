@@ -295,15 +295,18 @@ void Logger::markEntryDequeued() {
 
 void Logger::waitForWork() {
   std::unique_lock<std::mutex> lock(work_ready_mutex_);
+  worker_waiting_ = true;
   work_ready_cv_.wait(lock, [this]() {
     return !running_.load(std::memory_order_acquire) || queued_entries_ > 0;
   });
+  worker_waiting_ = false;
 }
 
 void Logger::resetRuntimeState() {
   {
     std::lock_guard<std::mutex> work_lock(work_ready_mutex_);
     queued_entries_ = 0;
+    worker_waiting_ = false;
   }
   dropped_count_.store(0, std::memory_order_relaxed);
 }
