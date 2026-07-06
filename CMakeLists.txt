@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
   async_logger
-  VERSION 0.1.0
+  VERSION 0.2.0
   LANGUAGES CXX)
 
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
@@ -16,6 +16,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+option(ENABLE_TESTS "Enable tests" OFF)
+option(ENABLE_EXAMPLE "Enable example" OFF)
 
 set(ASYNC_LOGGER_RING_BUFFER_VERSION 0.1.0)
 set(ASYNC_LOGGER_RING_BUFFER_PROVIDER
@@ -80,8 +83,6 @@ target_include_directories(
                       $<INSTALL_INTERFACE:include>)
 target_link_libraries(async_logger PUBLIC ${ASYNC_LOGGER_RING_BUFFER_TARGET})
 
-option(ENABLE_TESTS "Enable tests" OFF)
-
 if(ENABLE_TESTS)
   message(STATUS "Tests enabled")
 
@@ -93,6 +94,9 @@ if(ENABLE_TESTS)
 
   set(gtest_force_shared_crt
       ON
+      CACHE BOOL "" FORCE)
+  set(INSTALL_GTEST
+      OFF
       CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(googletest)
   enable_testing()
@@ -115,8 +119,6 @@ if(ENABLE_TESTS)
   add_test(NAME async_logger_macro_test COMMAND async_logger_macro_test)
 endif(ENABLE_TESTS)
 
-option(ENABLE_EXAMPLE "Enable example" OFF)
-
 if(ENABLE_EXAMPLE)
   message(STATUS "Example enabled")
   add_executable(async_logger_example examples/async_logger_example.cc)
@@ -132,7 +134,13 @@ endif(ENABLE_EXAMPLE)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-install(TARGETS async_logger EXPORT async_loggerTargets)
+install(
+  TARGETS async_logger
+  EXPORT async_loggerTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(
