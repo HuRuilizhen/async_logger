@@ -129,7 +129,7 @@ By default, `async_logger` uses `ASYNC_LOGGER_RING_BUFFER_PROVIDER=AUTO`.
 That means it will:
 
 - reuse a `ring_buffer` target already provided by the caller
-- otherwise try `find_package(ring_buffer 0.1.0 CONFIG)`
+- otherwise try `find_package(ring_buffer 0.1.1 CONFIG)`
 - otherwise fall back to `FetchContent`
 
 If you want stricter behavior, set the provider before
