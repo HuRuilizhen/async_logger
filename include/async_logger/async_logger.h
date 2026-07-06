@@ -15,20 +15,22 @@
 
 namespace AsyncLogger {
 
-// Supported log levels
+// Supported log levels.
 enum class Level { Debug, Info, Warn, Error, Fatal };
 
+// Worker wait strategy when the queue is empty.
 enum class WaitStrategy { Blocking, Yielding };
 
-// Supported ostream control flag
+// Output control flags.
 enum OutstreamFlag {
   out_stdout = 1,       // log to std out
   out_stderr = 1 << 1,  // log to std error
   out_file = 1 << 2,    // log to given file
-  out_color = 1 << 3,   // enabel colored level, only work on std out
+  out_color = 1 << 3,   // enable colored level, only work on std out
   mode_append = 1 << 4  // open file in append mode
 };
 
+// Logger configuration applied during init().
 struct Config {
   std::string filename{};
   int flag = OutstreamFlag::out_stdout | OutstreamFlag::out_file |
@@ -51,14 +53,18 @@ class FileOpenError : public std::runtime_error {
 
 class Logger {
  public:
-  // Initialize logger: opens file and starts worker thread
+  // Initialize the singleton logger, start the worker, and open the file sink
+  // when enabled.
   static void init(const Config& config = Config());
-  // Shutdown logger: stops worker and flushes remaining logs
+  // Stop the worker and flush any remaining queued entries.
   static void shutdown();
+  // Number of log entries dropped because the async queue was full during the
+  // current logger lifetime.
   static size_t droppedCount();
+  // Reset drop accounting without changing the active logger configuration.
   static void resetStats();
 
-  // Logging API
+  // Logging API.
   static void debug(
       const std::string& msg,
       const std::source_location& loc = std::source_location::current());
@@ -133,6 +139,7 @@ class LoggerUtils {
   static const std::string getDefaultFilename();
   static const bool tryUpdateFileStream(Logger& lg);
   static constexpr std::string_view getFilenameInPath(std::string_view path);
+  // Injectable time provider used by tests.
   static const std::tm (*timeFuncPtr)();
 };
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(
   async_logger
-  VERSION 0.1.0
+  VERSION 0.2.0
   LANGUAGES CXX)
 
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
@@ -17,7 +17,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-set(ASYNC_LOGGER_RING_BUFFER_VERSION 0.1.0)
+option(ASYNC_LOGGER_BUILD_TESTS "Build async_logger tests" OFF)
+option(ASYNC_LOGGER_BUILD_EXAMPLES "Build async_logger examples" OFF)
+
+set(ASYNC_LOGGER_RING_BUFFER_VERSION 0.1.1)
 set(ASYNC_LOGGER_RING_BUFFER_PROVIDER
     "AUTO"
     CACHE STRING "Dependency provider for ring_buffer: FETCH, PACKAGE, or AUTO")
@@ -80,9 +83,7 @@ target_include_directories(
                       $<INSTALL_INTERFACE:include>)
 target_link_libraries(async_logger PUBLIC ${ASYNC_LOGGER_RING_BUFFER_TARGET})
 
-option(ENABLE_TESTS "Enable tests" OFF)
-
-if(ENABLE_TESTS)
+if(ASYNC_LOGGER_BUILD_TESTS)
   message(STATUS "Tests enabled")
 
   include(FetchContent)
@@ -93,6 +94,9 @@ if(ENABLE_TESTS)
 
   set(gtest_force_shared_crt
       ON
+      CACHE BOOL "" FORCE)
+  set(INSTALL_GTEST
+      OFF
       CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(googletest)
   enable_testing()
@@ -113,11 +117,9 @@ if(ENABLE_TESTS)
   add_test(NAME async_logger_error_test COMMAND async_logger_error_test)
   add_test(NAME async_logger_file_test COMMAND async_logger_file_test)
   add_test(NAME async_logger_macro_test COMMAND async_logger_macro_test)
-endif(ENABLE_TESTS)
+endif()
 
-option(ENABLE_EXAMPLE "Enable example" OFF)
-
-if(ENABLE_EXAMPLE)
+if(ASYNC_LOGGER_BUILD_EXAMPLES)
   message(STATUS "Example enabled")
   add_executable(async_logger_example examples/async_logger_example.cc)
   add_executable(async_logger_macro_example
@@ -127,12 +129,18 @@ if(ENABLE_EXAMPLE)
                          PRIVATE $<$<CONFIG:Debug>:-O0 -g>)
   target_link_libraries(async_logger_example PRIVATE async_logger)
   target_link_libraries(async_logger_macro_example PRIVATE async_logger)
-endif(ENABLE_EXAMPLE)
+endif()
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-install(TARGETS async_logger EXPORT async_loggerTargets)
+install(
+  TARGETS async_logger
+  EXPORT async_loggerTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(

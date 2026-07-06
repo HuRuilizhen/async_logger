@@ -13,8 +13,8 @@
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "ASYNC_LOGGER_RING_BUFFER_PROVIDER": "FETCH",
-        "ENABLE_TESTS": "ON",
-        "ENABLE_EXAMPLE": "ON"
+        "ASYNC_LOGGER_BUILD_TESTS": "ON",
+        "ASYNC_LOGGER_BUILD_EXAMPLES": "ON"
       }
     },
     {

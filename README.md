@@ -9,7 +9,10 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 - Five log levels: `Debug`, `Info`, `Warn`, `Error`, `Fatal`  
 - Non-blocking, lock-free enqueue via mpsc ring buffer  
 - Background worker thread for file I/O
+- Configurable idle behavior via blocking or yielding worker wait strategies
 - Log file rotation on date change
+- Queue drop accounting via `Logger::droppedCount()`
+- Library-friendly file-open errors via `AsyncLogger::FileOpenError`
 - Configurable log file, level filtering, and formatting (level, timestamp, location, message)  
 - Zero-overhead when log level is below threshold  
 - Simple C++ interface: `Logger::debug("…")`, `Logger::info("…")`, etc.
@@ -18,9 +21,10 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 
 - C++20-compatible compiler  
 - CMake >= 3.20  
-- Network access for dependency fetching in development mode, or a local
-  [`ring_buffer`](https://github.com/HuRuilizhen/ring_buffer) installation when using the
-  `PACKAGE` provider
+- Network access when using the `FETCH` provider, or when the `AUTO` provider
+  falls back to `FetchContent`
+- A local [`ring_buffer`](https://github.com/HuRuilizhen/ring_buffer)
+  installation when using the `PACKAGE` provider
 - (Optional) GoogleTest for unit tests
 
 ## Table of Contents
@@ -50,8 +54,8 @@ An industrial-grade, asynchronous C++20 logging library built on a high-performa
 
 | Option                               | Default | Description                                                    |
 | ------------------------------------ | ------- | -------------------------------------------------------------- |
-| `ENABLE_TESTS`                       | OFF     | Build unit tests                                               |
-| `ENABLE_EXAMPLE`                     | OFF     | Build examples                                                 |
+| `ASYNC_LOGGER_BUILD_TESTS`           | OFF     | Build unit tests                                               |
+| `ASYNC_LOGGER_BUILD_EXAMPLES`        | OFF     | Build examples                                                 |
 | `CMAKE_EXPORT_COMPILE_COMMANDS`      | OFF     | Generate `compile_commands.json` for IDEs                      |
 | `ASYNC_LOGGER_RING_BUFFER_PROVIDER`  | `AUTO`  | Resolve `ring_buffer` via `FETCH`, `PACKAGE`, or `AUTO`        |
 
@@ -113,7 +117,7 @@ include(FetchContent)
 FetchContent_Declare(
   async_logger
   GIT_REPOSITORY https://github.com/YourUser/async_logger.git
-  GIT_TAG        v0.1.0
+  GIT_TAG        v0.2.0
 )
 
 FetchContent_MakeAvailable(async_logger)
@@ -126,7 +130,7 @@ By default, `async_logger` uses `ASYNC_LOGGER_RING_BUFFER_PROVIDER=AUTO`.
 That means it will:
 
 - reuse a `ring_buffer` target already provided by the caller
-- otherwise try `find_package(ring_buffer 0.1.0 CONFIG)`
+- otherwise try `find_package(ring_buffer 0.1.1 CONFIG)`
 - otherwise fall back to `FetchContent`
 
 If you want stricter behavior, set the provider before
@@ -153,6 +157,15 @@ target_link_libraries(my_app PRIVATE
 )
 ```
 
+Installed package consumption expects an installed `ring_buffer` package that
+matches `ASYNC_LOGGER_RING_BUFFER_VERSION` when `async_logger` was built with
+`ASYNC_LOGGER_RING_BUFFER_PROVIDER=PACKAGE`.
+
+When `async_logger` is built with `FETCH` or with `AUTO` falling back to
+`FetchContent`, `cmake --install` also installs the fetched `ring_buffer`
+package into the same prefix, so `find_package(async_logger CONFIG REQUIRED)`
+remains self-contained for downstream consumers.
+
 ### Supported APIs
 
 Namespace: `AsyncLogger`
@@ -174,8 +187,14 @@ struct Config {
   std::string filename{}; // log file path (if out_file enabled), if empty use time-stamped filename with rotation
   int flag;               // output flags, see OutstreamFlag
   Level level;            // minimum log level
+  WaitStrategy wait_strategy; // worker idle strategy: Blocking or Yielding
 };
 ```
+
+**Wait strategies:**
+
+* `WaitStrategy::Blocking` $\rightarrow$ default, lower idle CPU usage
+* `WaitStrategy::Yielding` $\rightarrow$ lower wake-up latency at the cost of CPU noise
 
 **Flags (`OutstreamFlag`):**
 
@@ -205,7 +224,19 @@ Logger::fatal(const std::string& msg,
 ```
 
 * All methods automatically capture file/line/function via `std::source_location`.
-* Log entries are enqueued into a `MPSCRingBuffer` and written asynchronously by a worker thread.
+* Log entries capture their timestamp at enqueue time and are written asynchronously by a worker thread.
+* If the queue is full, entries are dropped and counted via `Logger::droppedCount()`.
+
+#### Error Handling
+
+When file output is enabled and the log file cannot be opened, `Logger::init()`
+throws `AsyncLogger::FileOpenError`.
+
+You can inspect queue pressure after shutdown with:
+
+```cpp
+auto dropped = AsyncLogger::Logger::droppedCount();
+```
 
 #### Logging via Macros
 
@@ -231,8 +262,12 @@ LOGF_ERROR("failed: {} ({})", filename, errno);
 #include <async_logger/async_logger.h>
 
 int main() {
+    AsyncLogger::Config config;
+    config.flag = AsyncLogger::out_stdout | AsyncLogger::out_file;
+    config.wait_strategy = AsyncLogger::WaitStrategy::Blocking;
+
+    AsyncLogger::Logger::init(config);
     AsyncLogger::Logger::info("Application started");
-    // …
     AsyncLogger::Logger::shutdown();
     return 0;
 }
