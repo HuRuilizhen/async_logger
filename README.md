@@ -83,11 +83,6 @@ cmake -S . -B build/auto \
   -DASYNC_LOGGER_RING_BUFFER_PROVIDER=AUTO \
   -DCMAKE_BUILD_TYPE=Debug
 
-# Top-level compatibility aliases still work, but are deprecated
-cmake -S . -B build/compat \
-  -DENABLE_TESTS=ON \
-  -DENABLE_EXAMPLE=ON
-
 # Install from a configured build tree
 sudo cmake --install build/release
 ```
