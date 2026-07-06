@@ -9,6 +9,20 @@ on:
     branches: [ "dev", "release" ]
 
 jobs:
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install clang-format
+      run: sudo apt-get update && sudo apt-get install -y clang-format
+
+    - name: Check formatting
+      run: >
+        clang-format --dry-run --Werror
+        $(git ls-files '*.cc' '*.h')
+
   build:
     runs-on: ${{ matrix.os }}
 
